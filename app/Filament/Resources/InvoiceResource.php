@@ -50,7 +50,7 @@ class InvoiceResource extends Resource
                             ->default(now()->addDays(30))
                             ->label('Due Date')
                             ->helperText('The date when the invoice payment is due')
-                            ->minDate(fn (callable $get) => $get('issue_date')),
+                            ->minDate(fn(callable $get) => $get('issue_date')),
 
                         Forms\Components\Select::make('status')
                             ->options([
@@ -97,26 +97,15 @@ class InvoiceResource extends Resource
                                                         $set('unit_price', $product->unit_price);
                                                         $set('tax_rate', $product->tax_rate);
                                                         $set('discount_rate', $product->discount_rate ?? 0);
-
-                                                        // $quantity = $product->quantity;
-                                                        // $unitPrice = $product->unit_price;
-                                                        // $taxRate = $product->tax_rate;
-                                                        // $discountRate = $product->discount_rate ?? 0;
-
-                                                        // $subtotal = $quantity * $unitPrice;
-                                                        // $taxAmount = $subtotal * ($taxRate / 100);
-                                                        // $discountAmount = $subtotal * ($discountRate / 100);
-                                                        // $total = $subtotal + $taxAmount - $discountAmount;
-
-                                                        // $set('tax_amount', $taxAmount);
-                                                        // $set('discount_amount', $discountAmount);
-                                                        // $set('grand_subtotal', $subtotal);
-                                                        // $set('grand_total', $total);
-
                                                         self::updateItemCalculations($set, $get);
-                                                        // self::updateInvoiceSummary( [$product], $set, $get);
                                                     }
                                                 }
+                                            })
+                                            ->disableOptionWhen(function ($value, $state, Get $get) {
+                                                return collect($get('../*.product_id'))
+                                                    ->reject(fn($id) => $id == $state)
+                                                    ->filter()
+                                                    ->contains($value);
                                             })
                                             ->columnSpan(1),
 
@@ -124,6 +113,7 @@ class InvoiceResource extends Resource
                                             ->required()
                                             ->label('Description')
                                             ->helperText('Product description')
+                                            ->reactive()
                                             ->columnSpan(1),
 
                                         Forms\Components\TextInput::make('quantity')
@@ -133,10 +123,10 @@ class InvoiceResource extends Resource
                                             ->minValue(1)
                                             ->label('Quantity')
                                             ->helperText('Number of units')
-                                            // ->reactive()
-                                            // ->afterStateUpdated(function ($state, Set $set, Get $get) {
-                                            //     static::updateItemCalculations($set, $get);
-                                            // })
+                                            ->reactive()
+                                            ->afterStateUpdated(function ($state, Set $set, Get $get) {
+                                                static::updateItemCalculations($set, $get);
+                                            })
                                             ->columnSpan(1),
 
                                         Forms\Components\TextInput::make('unit_price')
@@ -229,18 +219,9 @@ class InvoiceResource extends Resource
                             ->reorderable(false)
                             ->columnSpanFull()
                             ->live()
-                            ->afterStateUpdated(function (Set $set, Get $get) {
+                            ->afterStateUpdated(function (Get $get, Set $set) {
 
-
-                                // Retrieve all selected products and remove empty rows
-                                $selectedProducts = collect($get('items'))->filter(fn($item) => !empty($item['product_id']) && !empty($item['quantity']));
-
-                                $product = Product::find($selectedProducts->pluck('product_id'));
-
-                                // info($product);
-
-
-                                self::updateInvoiceSummary($selectedProducts, $set, $get);
+                                self::updateTotals($get, $set);
 
                             }),
                     ]),
@@ -300,15 +281,20 @@ class InvoiceResource extends Resource
                             ->schema([
                                 Forms\Components\TextInput::make('grand_subtotal')
                                     ->numeric()
-                                    ->disabled()
+//                                    ->disabled()
+                                    ->reactive()
                                     ->prefix('GHS')
                                     ->label('Grand Subtotal')
                                     ->helperText('Total before tax and discount')
-                                    ->columnSpan(1),
+                                    ->columnSpan(1)
+                                    ->afterStateHydrated(function (Get $get, Set $set) {
+
+                                    }),
 
                                 Forms\Components\TextInput::make('grand_total')
                                     ->numeric()
-                                    ->disabled()
+//                                    ->disabled()
+                                    ->reactive()
                                     ->prefix('GHS')
                                     ->label('Grand Total')
                                     ->helperText('Final invoice amount')
@@ -374,31 +360,83 @@ class InvoiceResource extends Resource
                                 'monthly' => 'Monthly',
                                 'yearly' => 'Yearly',
                             ])
-                            ->visible(fn (Get $get) => $get('is_recurring'))
-                            ->required(fn (Get $get) => $get('is_recurring'))
+                            ->visible(fn(Get $get) => $get('is_recurring'))
+                            ->required(fn(Get $get) => $get('is_recurring'))
                             ->label('Frequency')
                             ->helperText('How often should the invoice be generated'),
 
                         Forms\Components\DatePicker::make('recurring_start_date')
-                            ->visible(fn (Get $get) => $get('is_recurring'))
-                            ->required(fn (Get $get) => $get('is_recurring'))
+                            ->visible(fn(Get $get) => $get('is_recurring'))
+                            ->required(fn(Get $get) => $get('is_recurring'))
                             ->label('Start Date')
                             ->helperText('When to start generating recurring invoices')
                             ->minDate(now()),
 
                         Forms\Components\DatePicker::make('recurring_end_date')
-                            ->visible(fn (Get $get) => $get('is_recurring'))
+                            ->visible(fn(Get $get) => $get('is_recurring'))
                             ->label('End Date')
                             ->helperText('When to stop generating recurring invoices (optional)')
-                            ->minDate(fn (Get $get) => $get('recurring_start_date')),
+                            ->minDate(fn(Get $get) => $get('recurring_start_date')),
 
                         Forms\Components\TextInput::make('recurring_invoice_number_prefix')
-                            ->visible(fn (Get $get) => $get('is_recurring'))
+                            ->visible(fn(Get $get) => $get('is_recurring'))
                             ->label('Invoice Number Prefix')
                             ->helperText('Prefix to identify recurring invoices (e.g., REC-)')
                             ->placeholder('REC-'),
                     ])->columns(2),
             ]);
+    }
+
+    protected static function updateTotals(Get $get, Set $set): void
+    {
+        $selectedProducts = collect($get('items'))
+            ->filter(fn($item) => !empty($item['product_id']) && !empty($item['quantity']));
+
+        $subtotal = 0;
+        $totalTax = 0;
+        $totalDiscount = 0;
+        $products = Product::query()
+            ->find($selectedProducts->pluck('product_id'));
+
+
+        foreach ($products as $item) {
+            $qty = $selectedProducts->pluck('quantity', 'product_id');
+            $singleProductTotals = self::updateSingleProductTotals($item, $qty[$item->id]);
+            $subtotal += $singleProductTotals['subtotal'];
+            $totalTax += $singleProductTotals['tax_amount'];
+            $totalDiscount += $singleProductTotals['discount_amount'];
+        }
+
+        $total = $subtotal + $totalTax - $totalDiscount;
+
+        $set('grand_subtotal', $subtotal);
+        $set('tax_amount', $totalTax);
+        $set('discount_amount', $totalDiscount);
+        $set('grand_total', $total);
+        //     Get the current amount_paid value from the form state
+//        $amountPaid = $get('amount_paid') ?? 0;
+//        $set('balance', $total - $amountPaid);
+
+    }
+
+    protected static function updateSingleProductTotals(Product $product, $quantity): array
+    {
+
+
+        $unitPrice = (float)($product->unit_price ?? 0);
+        $taxRate = (float)($product->tax_rate ?? 0);
+        $discountRate = (float)($product->discount_rate ?? 0);
+
+        $subtotal = $quantity * $unitPrice;
+        $taxAmount = $subtotal * ($taxRate / 100);
+        $discountAmount = $subtotal * ($discountRate / 100);
+        $total = $subtotal + $taxAmount - $discountAmount;
+        return [
+            'subtotal' => $subtotal,
+            'tax_amount' => $taxAmount,
+            'discount_amount' => $discountAmount,
+            'total' => $total,
+        ];
     }
 
     protected static function updateItemCalculations(Set $set, Get $get): void
@@ -418,6 +456,7 @@ class InvoiceResource extends Resource
         $set('discount_amount', $discountAmount);
         $set('total', $total);
     }
+
 
     protected static function updateInvoiceCalculations(Set $set, Get $get): void
     {
@@ -488,7 +527,7 @@ class InvoiceResource extends Resource
 
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'draft' => 'gray',
                         'sent' => 'info',
                         'paid' => 'success',
@@ -510,19 +549,19 @@ class InvoiceResource extends Resource
                         'partial' => 'Partial',
                     ]),
                 Tables\Filters\Filter::make('is_recurring')
-                    ->query(fn (Builder $query): Builder => $query->where('is_recurring', true)),
+                    ->query(fn(Builder $query): Builder => $query->where('is_recurring', true)),
             ])
             ->actions([
                 Tables\Actions\Action::make('download')
                     ->icon('heroicon-o-arrow-down-tray')
-                    ->url(fn (Invoice $record): string => route('invoices.download', $record))
+                    ->url(fn(Invoice $record): string => route('invoices.download', $record))
                     ->openUrlInNewTab(),
 
                 Tables\Actions\Action::make('send')
                     ->icon('heroicon-o-paper-airplane')
-                    ->action(fn (Invoice $record) => $record->update(['status' => 'sent']))
+                    ->action(fn(Invoice $record) => $record->update(['status' => 'sent']))
                     ->requiresConfirmation(),
-                    // ->visible(fn (Invoice $record) => $record->status === 'draft'),
+                // ->visible(fn (Invoice $record) => $record->status === 'draft'),
 
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
