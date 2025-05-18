@@ -14,6 +14,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 
 class QuoteResource extends Resource
 {
@@ -37,7 +38,10 @@ class QuoteResource extends Resource
                         Forms\Components\TextInput::make('quote_number')
                             ->required()
                             ->maxLength(255)
-                            ->unique(ignoreRecord: true),
+                            ->unique(ignoreRecord: true)
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->default('Will be auto-generated'),
                         Forms\Components\DatePicker::make('issue_date')
                             ->required(),
                         Forms\Components\DatePicker::make('expiry_date')
@@ -70,6 +74,19 @@ class QuoteResource extends Resource
                                         $set('description', $product->description);
                                         $set('unit_price', $product->unit_price);
                                         $set('tax_rate', $product->tax_rate);
+
+                                        // Calculate line totals
+                                        $quantity = $set('quantity') ?? 1;
+                                        $unitPrice = $product->unit_price;
+                                        $taxRate = $product->tax_rate;
+                                        
+                                        $subtotal = $quantity * $unitPrice;
+                                        $taxAmount = $subtotal * ($taxRate / 100);
+                                        $total = $subtotal + $taxAmount;
+
+                                        $set('subtotal', $subtotal);
+                                        $set('tax_amount', $taxAmount);
+                                        $set('total', $total);
                                     }),
                                 Forms\Components\TextInput::make('description')
                                     ->required()
@@ -77,20 +94,91 @@ class QuoteResource extends Resource
                                 Forms\Components\TextInput::make('quantity')
                                     ->required()
                                     ->numeric()
-                                    ->default(1),
+                                    ->default(1)
+                                    ->live()
+                                    ->afterStateUpdated(function ($state, Forms\Set $set, $get) {
+                                        $quantity = $state ?? 1;
+                                        $unitPrice = $get('unit_price') ?? 0;
+                                        $taxRate = $get('tax_rate') ?? 0;
+                                        
+                                        $subtotal = $quantity * $unitPrice;
+                                        $taxAmount = $subtotal * ($taxRate / 100);
+                                        $total = $subtotal + $taxAmount;
+
+                                        $set('subtotal', $subtotal);
+                                        $set('tax_amount', $taxAmount);
+                                        $set('total', $total);
+                                    }),
                                 Forms\Components\TextInput::make('unit_price')
                                     ->required()
                                     ->numeric()
-                                    ->prefix('₵'),
+                                    ->prefix('₵')
+                                    ->live()
+                                    ->afterStateUpdated(function ($state, Forms\Set $set, $get) {
+                                        $unitPrice = $state ?? 0;
+                                        $quantity = $get('quantity') ?? 1;
+                                        $taxRate = $get('tax_rate') ?? 0;
+                                        
+                                        $subtotal = $quantity * $unitPrice;
+                                        $taxAmount = $subtotal * ($taxRate / 100);
+                                        $total = $subtotal + $taxAmount;
+
+                                        $set('subtotal', $subtotal);
+                                        $set('tax_amount', $taxAmount);
+                                        $set('total', $total);
+                                    }),
                                 Forms\Components\TextInput::make('tax_rate')
                                     ->numeric()
                                     ->default(0)
-                                    ->suffix('%'),
+                                    ->suffix('%')
+                                    ->live()
+                                    ->afterStateUpdated(function ($state, Forms\Set $set, $get) {
+                                        $taxRate = $state ?? 0;
+                                        $quantity = $get('quantity') ?? 1;
+                                        $unitPrice = $get('unit_price') ?? 0;
+                                        
+                                        $subtotal = $quantity * $unitPrice;
+                                        $taxAmount = $subtotal * ($taxRate / 100);
+                                        $total = $subtotal + $taxAmount;
+
+                                        $set('subtotal', $subtotal);
+                                        $set('tax_amount', $taxAmount);
+                                        $set('total', $total);
+                                    }),
+                                Forms\Components\TextInput::make('subtotal')
+                                    ->numeric()
+                                    ->prefix('₵')
+                                    ->disabled(),
+                                Forms\Components\TextInput::make('tax_amount')
+                                    ->numeric()
+                                    ->prefix('₵')
+                                    ->disabled(),
+                                Forms\Components\TextInput::make('total')
+                                    ->numeric()
+                                    ->prefix('₵')
+                                    ->disabled(),
                             ])
-                            ->columns(3)
+                            ->columns(4)
                             ->defaultItems(1)
                             ->reorderable(false)
-                            ->columnSpanFull(),
+                            ->columnSpanFull()
+                            ->live()
+                            ->afterStateUpdated(function ($state, Forms\Set $set, $get) {
+                                // Calculate quote totals
+                                $items = collect($state ?? []);
+                                
+                                $subtotal = $items->sum('subtotal');
+                                $taxAmount = $items->sum('tax_amount');
+                                $discountRate = $get('discount_rate') ?? 0;
+                                
+                                $discountAmount = $subtotal * ($discountRate / 100);
+                                $total = $subtotal + $taxAmount - $discountAmount;
+
+                                $set('subtotal', $subtotal);
+                                $set('tax_amount', $taxAmount);
+                                $set('discount_amount', $discountAmount);
+                                $set('total', $total);
+                            }),
                     ]),
 
                 Forms\Components\Section::make('Totals')
@@ -100,12 +188,29 @@ class QuoteResource extends Resource
                             ->numeric()
                             ->prefix('₵')
                             ->disabled(),
-                        Forms\Components\TextInput::make('tax_rate')
+                        Forms\Components\TextInput::make('tax_amount')
+                            ->required()
+                            ->numeric()
+                            ->prefix('₵')
+                            ->disabled(),
+                        Forms\Components\TextInput::make('discount_rate')
+                            ->label('Discount (%)')
                             ->required()
                             ->numeric()
                             ->default(0)
-                            ->suffix('%'),
-                        Forms\Components\TextInput::make('tax_amount')
+                            ->suffix('%')
+                            ->live()
+                            ->afterStateUpdated(function ($state, Forms\Set $set, $get) {
+                                $discountRate = $state ?? 0;
+                                $subtotal = $get('subtotal') ?? 0;
+                                
+                                $discountAmount = $subtotal * ($discountRate / 100);
+                                $total = $subtotal + ($get('tax_amount') ?? 0) - $discountAmount;
+
+                                $set('discount_amount', $discountAmount);
+                                $set('total', $total);
+                            }),
+                        Forms\Components\TextInput::make('discount_amount')
                             ->required()
                             ->numeric()
                             ->prefix('₵')
@@ -115,7 +220,7 @@ class QuoteResource extends Resource
                             ->numeric()
                             ->prefix('₵')
                             ->disabled(),
-                    ])->columns(2),
+                    ])->columns(3),
 
                 Forms\Components\Section::make('Additional Information')
                     ->schema([
@@ -145,9 +250,22 @@ class QuoteResource extends Resource
                 Tables\Columns\TextColumn::make('expiry_date')
                     ->date()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('total')
+                Tables\Columns\TextColumn::make('subtotal')
                     ->money('GHS')
                     ->sortable(),
+                Tables\Columns\TextColumn::make('discount_amount')
+                    ->money('GHS')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('tax_amount')
+                    ->money('GHS')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('total')
+                    ->money('GHS')
+                    ->sortable()
+                    ->summarize([
+                        Tables\Columns\Summarizers\Sum::make()
+                            ->money('GHS'),
+                    ]),
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
@@ -182,17 +300,17 @@ class QuoteResource extends Resource
                     ->icon('heroicon-o-download')
                     ->url(fn (Quote $record): string => route('quotes.download', $record))
                     ->openUrlInNewTab()
-                    ->visible(fn () => auth()->user()->can('download_quote')),
+                    ->visible(fn () => Auth::user()->can('download_quote')),
                 Tables\Actions\Action::make('send')
                     ->icon('heroicon-o-envelope')
                     ->action(fn (Quote $record) => $record->send())
                     ->requiresConfirmation()
-                    ->visible(fn () => auth()->user()->can('send_quote')),
+                    ->visible(fn () => Auth::user()->can('send_quote')),
                 Tables\Actions\Action::make('convert_to_invoice')
                     ->icon('heroicon-o-document-text')
                     ->action(fn (Quote $record) => $record->convertToInvoice())
                     ->requiresConfirmation()
-                    ->visible(fn (Quote $record) => $record->status === 'accepted' && auth()->user()->can('convert_quote')),
+                    ->visible(fn (Quote $record) => $record->status === 'accepted' && Auth::user()->can('convert_quote')),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
                 Tables\Actions\ForceDeleteAction::make(),

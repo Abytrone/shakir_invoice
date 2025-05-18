@@ -12,6 +12,19 @@ class Quote extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($quote) {
+            if (!$quote->quote_number) {
+                $latestQuote = static::withTrashed()->latest()->first();
+                $nextNumber = $latestQuote ? intval(substr($latestQuote->quote_number, 3)) + 1 : 1;
+                $quote->quote_number = 'QUO' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
+            }
+        });
+    }
+
     protected $fillable = [
         'client_id',
         'quote_number',

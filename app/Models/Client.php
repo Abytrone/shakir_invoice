@@ -25,11 +25,6 @@ class Client extends Model
         'notes',
     ];
 
-    public function invoices(): HasMany
-    {
-        return $this->hasMany(Invoice::class);
-    }
-
     public function quotes(): HasMany
     {
         return $this->hasMany(Quote::class);

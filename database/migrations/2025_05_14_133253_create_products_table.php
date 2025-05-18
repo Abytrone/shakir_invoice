@@ -15,6 +15,7 @@ return new class extends Migration
             $table->enum('type', ['product', 'service']);
             $table->decimal('unit_price', 10, 2);
             $table->decimal('tax_rate', 5, 2)->default(0);
+            $table->decimal('discount_rate', 5, 2)->default(0);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
             $table->softDeletes();
