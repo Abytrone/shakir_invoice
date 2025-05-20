@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Models;
+use Filament\Panel;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -45,5 +46,11 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+        public function canAccessPanel(Panel $panel): bool
+    {
+//        return str_ends_with($this->email, '@yourdomain.com') && $this->hasVerifiedEmail();
+        return true;
     }
 }
