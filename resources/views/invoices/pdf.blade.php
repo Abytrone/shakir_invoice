@@ -151,23 +151,25 @@
         <table>
             <thead>
                 <tr>
-                    <th>Description</th>
+                    <th>#</th>
+                    <th>Item</th>
                     <th>Quantity</th>
-                    <th>Unit Price</th>
-                    <th>Tax</th>
-                    <th>Discount</th>
-                    <th>Total</th>
+                    <th>Unit Price (GHS)</th>
+                    <th>Tax (GHS)</th>
+                    <th>Discount (GHS)</th>
+                    <th>Total (GHS)</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach($invoice->items as $item)
                 <tr>
-                    <td>{{ $item->description }}</td>
+                    <td>{{ $loop->iteration }}</td>
+                    <td>{{ $item->product->name }}</td>
                     <td>{{ $item->quantity }}</td>
-                    <td>${{ number_format($item->unit_price, 2) }}</td>
-                    <td>${{ number_format($item->tax_amount, 2) }}</td>
-                    <td>${{ number_format($item->discount_amount, 2) }}</td>
-                    <td>${{ number_format($item->total, 2) }}</td>
+                    <td>{{ number_format($item->unit_price, 2, '.', ',') }}</td>
+                    <td>{{ number_format($item->tax_amount, 2, '.', ',') }}</td>
+                    <td>{{ number_format($item->discount_amount, 2, '.', ',') }}</td>
+                    <td>{{ number_format($item->total, 2, '.', ',') }}</td>
                 </tr>
                 @endforeach
             </tbody>
@@ -177,33 +179,33 @@
     <div class="invoice-totals">
         <table>
             <tr>
-                <td>Subtotal:</td>
-                <td align="right">${{ number_format($invoice->subtotal, 2) }}</td>
+                <td>Subtotal (GHS):</td>
+                <td align="right">{{ number_format($invoice->subtotal, 2, '.', ',') }}</td>
             </tr>
             @if($invoice->tax_amount > 0)
             <tr>
                 <td>Tax ({{ $invoice->tax_rate }}%):</td>
-                <td align="right">${{ number_format($invoice->tax_amount, 2) }}</td>
+                <td align="right">{{ number_format($invoice->tax_amount, 2, '.', ',') }}</td>
             </tr>
             @endif
             @if($invoice->discount_amount > 0)
             <tr>
                 <td>Discount ({{ $invoice->discount_rate }}%):</td>
-                <td align="right">-${{ number_format($invoice->discount_amount, 2) }}</td>
+                <td align="right">-{{ number_format($invoice->discount_amount, 2, '.', ',') }}</td>
             </tr>
             @endif
             <tr class="total-row">
                 <td>Total:</td>
-                <td align="right">${{ number_format($invoice->total, 2) }}</td>
+                <td align="right">{{ number_format($invoice->grand_total, 2, '.', ',') }}</td>
             </tr>
             @if($invoice->amount_paid > 0)
             <tr>
                 <td>Amount Paid:</td>
-                <td align="right">${{ number_format($invoice->amount_paid, 2) }}</td>
+                <td align="right">{{ number_format($invoice->amount_paid, 2, '.', ',') }}</td>
             </tr>
             <tr>
                 <td>Balance Due:</td>
-                <td align="right">${{ number_format($invoice->balance, 2) }}</td>
+                <td align="right">{{ number_format($invoice->balance, 2, '.', ',') }}</td>
             </tr>
             @endif
         </table>

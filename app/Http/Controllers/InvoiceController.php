@@ -10,9 +10,25 @@ use App\Mail\InvoiceMail;
 
 class InvoiceController extends Controller
 {
+    public function print(Invoice $invoice)
+    {
+        $pdf = PDF::loadView('invoices.print', [
+            'invoice' => $invoice,
+            'client' => $invoice->client,
+            'items' => $invoice->items,
+        ]);
+
+        return $pdf->stream("invoice-{$invoice->invoice_number}.pdf");
+    }
+
     public function download(Invoice $invoice)
     {
-        $pdf = PDF::loadView('invoices.pdf', ['invoice' => $invoice]);
+        $pdf = PDF::loadView('invoices.print', [
+            'invoice' => $invoice,
+            'client' => $invoice->client,
+            'items' => $invoice->items,
+        ]);
+
         return $pdf->download("invoice-{$invoice->invoice_number}.pdf");
     }
 

@@ -89,7 +89,6 @@ class InvoiceResource extends Resource
                                             ->helperText('Select a product to add to the invoice')
                                             ->live()
                                             ->afterStateUpdated(function ($state, Set $set, Get $get) {
-                                                info($state);
                                                 if ($state) {
                                                     $product = Product::find($state);
                                                     if ($product) {
@@ -114,20 +113,17 @@ class InvoiceResource extends Resource
 
                                         Forms\Components\TextInput::make('description')
                                             ->required()
-                                            ->label('Description')
                                             ->helperText('Product description')
-                                            ->reactive()
                                             ->columnSpan(1),
 
                                         Forms\Components\TextInput::make(name: 'quantity')
-                                            ->numeric()
+                                            ->integer()
                                             ->default(1)
                                             ->required()
                                             ->minValue(1)
-                                            ->label('Quantity')
                                             ->helperText('Number of units')
-                                            ->reactive()
-                                            ->afterStateUpdated(function ($state, Set $set, Get $get) {
+                                            ->live()
+                                            ->afterStateUpdated(function (Set $set, Get $get) {
                                                 static::updateTotals($get, $set);
                                             })
                                             ->columnSpan(1),
@@ -139,8 +135,8 @@ class InvoiceResource extends Resource
                                             ->prefix('GHS')
                                             ->label('Unit Price')
                                             ->helperText('Price per unit')
-                                            ->reactive()
-                                            ->afterStateUpdated(function ($state, Set $set, Get $get) {
+                                            ->live()
+                                            ->afterStateUpdated(function (Set $set, Get $get) {
                                                 static::updateTotals($get, $set);
                                             })
                                             ->columnSpan(1),
@@ -157,8 +153,8 @@ class InvoiceResource extends Resource
                                             ->suffix('%')
                                             ->label('Tax Rate')
                                             ->helperText('Tax rate percentage')
-                                            ->reactive()
-                                            ->afterStateUpdated(function ($state, Set $set, Get $get) {
+                                            ->live()
+                                            ->afterStateUpdated(function (Set $set, Get $get) {
                                                 static::updateTotals($get, $set);
                                             })
                                             ->columnSpan(1),
@@ -179,7 +175,7 @@ class InvoiceResource extends Resource
                                             ->suffix('%')
                                             ->label('Discount Rate')
                                             ->helperText('Discount rate percentage')
-                                            ->reactive()
+                                            ->live()
                                             ->afterStateUpdated(function ($state, Set $set, Get $get) {
                                                 static::updateTotals($get, $set);
                                             })
@@ -221,7 +217,7 @@ class InvoiceResource extends Resource
                             ->columnSpanFull()
                             ->live()
                             ->afterStateUpdated(function (Get $get, Set $set) {
-                                self::updateTotals($get, $set);
+                                static::updateTotals($get, $set);
                             }),
                     ]),
 
@@ -238,7 +234,7 @@ class InvoiceResource extends Resource
                                     ->suffix('%')
                                     ->label('Invoice Tax Rate')
                                     ->helperText('Overall tax rate for the invoice')
-                                    ->reactive()
+                                    ->live()
                                     ->afterStateUpdated(function ($state, Set $set, Get $get) {
                                         static::updateTotals($get, $set);
                                     })
@@ -250,6 +246,10 @@ class InvoiceResource extends Resource
                                     ->prefix('GHS')
                                     ->label('Total Tax')
                                     ->helperText('Total tax amount for all items')
+                                    ->live()
+                                    ->afterStateHydrated(function (Get $get, Set $set) {
+                                        static::updateTotals($get, $set);
+                                    })
                                     ->columnSpan(1),
 
                                 Forms\Components\TextInput::make('discount_rate')
@@ -260,7 +260,7 @@ class InvoiceResource extends Resource
                                     ->suffix('%')
                                     ->label('Invoice Discount Rate')
                                     ->helperText('Overall discount rate for the invoice')
-                                    ->reactive()
+                                    ->live()
                                     ->afterStateUpdated(function ($state, Set $set, Get $get) {
                                         static::updateTotals($get, $set);
                                     })
@@ -272,6 +272,10 @@ class InvoiceResource extends Resource
                                     ->prefix('GHS')
                                     ->label('Total Discount')
                                     ->helperText('Total discount amount for all items')
+                                    ->live()
+                                    ->afterStateHydrated(function (Get $get, Set $set) {
+                                        static::updateTotals($get, $set);
+                                    })
                                     ->columnSpan(1),
                             ]),
 
@@ -281,22 +285,25 @@ class InvoiceResource extends Resource
                                 Forms\Components\TextInput::make('grand_subtotal')
                                     ->numeric()
                                     ->disabled()
-                                    ->reactive()
+                                    ->live()
                                     ->prefix('GHS')
                                     ->label('Subtotal')
                                     ->helperText('Total before tax and discount')
-                                    ->columnSpan(1)
                                     ->afterStateHydrated(function (Get $get, Set $set) {
-
-                                    }),
+                                        static::updateTotals($get, $set);
+                                    })
+                                    ->columnSpan(1),
 
                                 Forms\Components\TextInput::make('grand_total')
                                     ->numeric()
                                     ->disabled()
-                                    ->reactive()
+                                    ->live()
                                     ->prefix('GHS')
                                     ->label('Grand Total')
                                     ->helperText('Final invoice amount')
+                                    ->afterStateHydrated(function (Get $get, Set $set) {
+                                        static::updateTotals($get, $set);
+                                    })
                                     ->columnSpan(1),
 
                                 Forms\Components\TextInput::make('amount_paid')
@@ -306,7 +313,7 @@ class InvoiceResource extends Resource
                                     ->prefix('GHS')
                                     ->label('Amount Paid')
                                     ->helperText('Amount received from client')
-                                    ->reactive()
+                                    ->live()
                                     ->afterStateUpdated(function ($state, Set $set, Get $get) {
                                         $total = $get('grand_total') ?? 0;
                                         $set('balance', $total - $state);
@@ -400,7 +407,9 @@ class InvoiceResource extends Resource
             $product = Product::find($item['product_id']);
             if (!$product) continue;
 
-            $quantity = (float)($item['quantity'] ?? 1);
+            // info($item['quantity']);
+
+            $quantity = $item['quantity'];
             $unitPrice = (float)($item['unit_price'] ?? $product->unit_price ?? 0);
             $taxRate = (float)($item['tax_rate'] ?? $product->tax_rate ?? 0);
             $discountRate = (float)($item['discount_rate'] ?? $product->discount_rate ?? 0);
@@ -415,10 +424,10 @@ class InvoiceResource extends Resource
             $totalDiscount += $itemDiscountAmount;
 
             // Update individual item calculations with formatted display values
-            $set("items.{$key}.subtotal", number_format($itemSubtotal, 2, '.', ''));
-            $set("items.{$key}.tax_amount", number_format($itemTaxAmount, 2, '.', ''));
-            $set("items.{$key}.discount_amount", number_format($itemDiscountAmount, 2, '.', ''));
-            $set("items.{$key}.total", number_format($itemTotal, 2, '.', ''));
+            $set("items.{$key}.subtotal", $itemSubtotal);
+            $set("items.{$key}.tax_amount", $itemTaxAmount);
+            $set("items.{$key}.discount_amount", $itemDiscountAmount);
+            $set("items.{$key}.total", $itemTotal);
         }
 
         // Now apply invoice-level tax and discount
@@ -437,14 +446,15 @@ class InvoiceResource extends Resource
         $total = $subtotal + $totalTax - $totalDiscount;
 
         // Update invoice summary with formatted display values
-        $set('grand_subtotal', number_format($subtotal, 2, '.', ''));
-        $set('total_tax', number_format($totalTax, 2, '.', ''));
-        $set('total_discount', number_format($totalDiscount, 2, '.', ''));
-        $set('grand_total', number_format($total, 2, '.', ''));
+        $set('grand_subtotal', $subtotal);
+        $set('total_tax', $totalTax);
+        $set('total_discount', $totalDiscount);
+        $set('grand_total', $total);
 
         // Update balance
         $amountPaid = (float)($get('amount_paid') ?? 0);
-        $set('balance', number_format($total - $amountPaid, 2, '.', ''));
+        $balance = $total - $amountPaid;
+        $set('balance', $balance);
     }
 
     public static function table(Table $table): Table
@@ -467,7 +477,7 @@ class InvoiceResource extends Resource
                     ->date()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('total')
+                Tables\Columns\TextColumn::make('grand_total')
                     ->money('GHS')
                     ->sortable(),
 
@@ -498,19 +508,28 @@ class InvoiceResource extends Resource
                     ->query(fn(Builder $query): Builder => $query->where('is_recurring', true)),
             ])
             ->actions([
-                Tables\Actions\Action::make('download')
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->url(fn(Invoice $record): string => route('invoices.download', $record))
-                    ->openUrlInNewTab(),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\ViewAction::make()
+                        ->icon('heroicon-o-eye'),
 
-                Tables\Actions\Action::make('send')
-                    ->icon('heroicon-o-paper-airplane')
-                    ->action(fn(Invoice $record) => $record->update(['status' => 'sent']))
-                    ->requiresConfirmation(),
-                // ->visible(fn (Invoice $record) => $record->status === 'draft'),
+                    Tables\Actions\Action::make('print')
+                        ->icon('heroicon-o-printer')
+                        ->url(fn(Invoice $record): string => route('invoices.print', $record))
+                        ->openUrlInNewTab(),
 
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                    Tables\Actions\Action::make('download')
+                        ->icon('heroicon-o-arrow-down-tray')
+                        ->url(fn(Invoice $record): string => route('invoices.download', $record))
+                        ->openUrlInNewTab(),
+
+                    Tables\Actions\Action::make('send')
+                        ->icon('heroicon-o-paper-airplane')
+                        ->action(fn(Invoice $record) => $record->update(['status' => 'sent']))
+                        ->requiresConfirmation(),
+
+                    Tables\Actions\EditAction::make(),
+                    Tables\Actions\DeleteAction::make(),
+                ]),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
