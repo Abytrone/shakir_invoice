@@ -14,14 +14,7 @@ return new class extends Migration
             $table->string('invoice_number')->unique();
             $table->date('issue_date');
             $table->date('due_date');
-            $table->decimal('subtotal', 10, 2);
-            $table->decimal('tax_rate', 5, 2)->default(0);
-            $table->decimal('tax_amount', 10, 2)->default(0);
-            $table->decimal('discount_rate', 5, 2)->default(0);
-            $table->decimal('discount_amount', 10, 2)->default(0);
-            $table->decimal('total', 10, 2);
             $table->decimal('amount_paid', 10, 2)->default(0);
-            $table->decimal('balance', 10, 2);
             $table->string('status')->default('draft'); // draft, sent, paid, overdue, cancelled
             $table->text('notes')->nullable();
             $table->text('terms')->nullable();

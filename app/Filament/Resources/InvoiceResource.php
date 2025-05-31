@@ -14,6 +14,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class InvoiceResource extends Resource
@@ -88,21 +89,6 @@ class InvoiceResource extends Resource
                                             ->label('Product')
                                             ->helperText('Select a product to add to the invoice')
                                             ->live()
-                                            ->afterStateUpdated(function ($state, Set $set, Get $get) {
-                                                if ($state) {
-                                                    $product = Product::find($state);
-                                                    if ($product) {
-                                                        $set('description', $product->description);
-                                                        $set('unit_price', $product->unit_price);
-                                                        $set('tax_rate', $product->tax_rate);
-                                                        $set('discount_rate', $product->discount_rate ?? 0);
-
-                                                        $set('subtotal', $product->unit_price);
-                                                        $set('total', $product->unit_price);
-                                                        static::updateTotals($get, $set);
-                                                    }
-                                                }
-                                            })
                                             ->disableOptionWhen(function ($value, $state, Get $get) {
                                                 return collect($get('../*.product_id'))
                                                     ->reject(fn($id) => $id == $state)
@@ -111,10 +97,6 @@ class InvoiceResource extends Resource
                                             })
                                             ->columnSpan(1),
 
-                                        Forms\Components\TextInput::make('description')
-                                            ->required()
-                                            ->helperText('Product description')
-                                            ->columnSpan(1),
 
                                         Forms\Components\TextInput::make(name: 'quantity')
                                             ->integer()
@@ -124,12 +106,13 @@ class InvoiceResource extends Resource
                                             ->helperText('Number of units')
                                             ->live()
                                             ->afterStateUpdated(function (Set $set, Get $get) {
-                                                static::updateTotals($get, $set);
+//                                                static::updateTotals($get, $set);
                                             })
                                             ->columnSpan(1),
 
                                         Forms\Components\TextInput::make('unit_price')
                                             ->numeric()
+                                            ->readonly()
                                             ->required()
                                             ->minValue(0)
                                             ->prefix('GHS')
@@ -137,16 +120,38 @@ class InvoiceResource extends Resource
                                             ->helperText('Price per unit')
                                             ->live()
                                             ->afterStateUpdated(function (Set $set, Get $get) {
-                                                static::updateTotals($get, $set);
+//                                                static::updateTotals($get, $set);
                                             })
                                             ->columnSpan(1),
-                                    ]),
+                                    ])->afterStateUpdated(function ($state, Set $set, Get $get) {
+
+                                        if ($state) {
+                                            $product = Product::query()
+                                                ->find($state['product_id']);
+
+                                            if ($product) {
+                                                $taxAmount = $product->unit_price * ($product->tax_rate / 100);
+                                                $discountAmount = $product->unit_price * ($product->discount_rate / 100);
+                                                $subTotal = $product->unit_price * $get('quantity') ?? 1;
+                                                $total = $subTotal - $discountAmount + $taxAmount;
+                                                $set('unit_price', $product->unit_price);
+                                                $set('tax_rate', $product->tax_rate);
+                                                $set('tax_amount', $taxAmount * $get('quantity') ?? 1);
+                                                $set('discount_rate', $product->discount_rate);
+                                                $set('discount_amount', $discountAmount * $get('quantity') ?? 1);
+                                                $set('subtotal', $subTotal);
+                                                $set('total', $total);
+//                                                static::updateTotals($get, $set, $state);
+                                            }
+                                        }
+                                    }),
 
                                 // Second row
                                 Forms\Components\Grid::make(4)
                                     ->schema([
                                         Forms\Components\TextInput::make('tax_rate')
                                             ->numeric()
+                                            ->readOnly()
                                             ->default(0)
                                             ->minValue(0)
                                             ->maxValue(100)
@@ -154,9 +159,6 @@ class InvoiceResource extends Resource
                                             ->label('Tax Rate')
                                             ->helperText('Tax rate percentage')
                                             ->live()
-                                            ->afterStateUpdated(function (Set $set, Get $get) {
-                                                static::updateTotals($get, $set);
-                                            })
                                             ->columnSpan(1),
 
                                         Forms\Components\TextInput::make('tax_amount')
@@ -169,6 +171,7 @@ class InvoiceResource extends Resource
 
                                         Forms\Components\TextInput::make('discount_rate')
                                             ->numeric()
+                                            ->readonly()
                                             ->default(0)
                                             ->minValue(0)
                                             ->maxValue(100)
@@ -176,9 +179,6 @@ class InvoiceResource extends Resource
                                             ->label('Discount Rate')
                                             ->helperText('Discount rate percentage')
                                             ->live()
-                                            ->afterStateUpdated(function ($state, Set $set, Get $get) {
-                                                static::updateTotals($get, $set);
-                                            })
                                             ->columnSpan(1),
 
                                         Forms\Components\TextInput::make('discount_amount')
@@ -215,30 +215,29 @@ class InvoiceResource extends Resource
                             ->defaultItems(1)
                             ->reorderable(false)
                             ->columnSpanFull()
-                            ->live()
-                            ->afterStateUpdated(function (Get $get, Set $set) {
-                                static::updateTotals($get, $set);
-                            }),
-                    ]),
+                            ->live(),
+                    ])->afterStateUpdated(function ($state, Get $get, Set $set) {
+                        static::updateTotals($get, $set, $state);
+                    }),
 
                 Forms\Components\Section::make('Invoice Summary')
                     ->schema([
                         // First row: Tax and Discount
                         Forms\Components\Grid::make(4)
                             ->schema([
-                                Forms\Components\TextInput::make('tax_rate')
+                                Forms\Components\TextInput::make('total_tax_rate')
                                     ->numeric()
+                                    ->disabled()
                                     ->default(0)
                                     ->minValue(0)
                                     ->maxValue(100)
                                     ->suffix('%')
-                                    ->label('Invoice Tax Rate')
+                                    ->label('Total Tax Rate')
                                     ->helperText('Overall tax rate for the invoice')
-                                    ->live()
-                                    ->afterStateUpdated(function ($state, Set $set, Get $get) {
-                                        static::updateTotals($get, $set);
-                                    })
-                                    ->columnSpan(1),
+                                    ->live()->columnSpan(1),
+//                                    ->afterStateUpdated(function ($state, Set $set, Get $get) {
+//                                        static::updateTotals($get, $set);
+//                                    }),
 
                                 Forms\Components\TextInput::make('total_tax')
                                     ->numeric()
@@ -248,12 +247,13 @@ class InvoiceResource extends Resource
                                     ->helperText('Total tax amount for all items')
                                     ->live()
                                     ->afterStateHydrated(function (Get $get, Set $set) {
-                                        static::updateTotals($get, $set);
+//                                        static::updateTotals($get, $set);
                                     })
                                     ->columnSpan(1),
 
-                                Forms\Components\TextInput::make('discount_rate')
+                                Forms\Components\TextInput::make('total_discount_rate')
                                     ->numeric()
+                                    ->disabled()
                                     ->default(0)
                                     ->minValue(0)
                                     ->maxValue(100)
@@ -262,7 +262,7 @@ class InvoiceResource extends Resource
                                     ->helperText('Overall discount rate for the invoice')
                                     ->live()
                                     ->afterStateUpdated(function ($state, Set $set, Get $get) {
-                                        static::updateTotals($get, $set);
+//                                        static::updateTotals($get, $set);
                                     })
                                     ->columnSpan(1),
 
@@ -274,7 +274,7 @@ class InvoiceResource extends Resource
                                     ->helperText('Total discount amount for all items')
                                     ->live()
                                     ->afterStateHydrated(function (Get $get, Set $set) {
-                                        static::updateTotals($get, $set);
+//                                        static::updateTotals($get, $set);
                                     })
                                     ->columnSpan(1),
                             ]),
@@ -290,7 +290,7 @@ class InvoiceResource extends Resource
                                     ->label('Subtotal')
                                     ->helperText('Total before tax and discount')
                                     ->afterStateHydrated(function (Get $get, Set $set) {
-                                        static::updateTotals($get, $set);
+//                                        static::updateTotals($get, $set);
                                     })
                                     ->columnSpan(1),
 
@@ -302,7 +302,7 @@ class InvoiceResource extends Resource
                                     ->label('Grand Total')
                                     ->helperText('Final invoice amount')
                                     ->afterStateHydrated(function (Get $get, Set $set) {
-                                        static::updateTotals($get, $set);
+//                                        static::updateTotals($get, $set);
                                     })
                                     ->columnSpan(1),
 
@@ -393,67 +393,58 @@ class InvoiceResource extends Resource
             ]);
     }
 
-    protected static function updateTotals(Get $get, Set $set): void
+    protected static function updateLocalTotals($state)
+    {
+
+    }
+
+    protected static function updateTotals(Get $get, Set $set, $state): void
     {
         $items = collect($get('items'))
             ->filter(fn($item) => !empty($item['product_id']) && !empty($item['quantity']));
 
-        $subtotal = 0;
+        $totalTaxRate = 0;
         $totalTax = 0;
+        $totalDiscountRate = 0;
         $totalDiscount = 0;
+
+        $subtotal = 0;
+        $grandTotal = 0;
 
         // First calculate item-level totals
         foreach ($items as $key => $item) {
-            $product = Product::find($item['product_id']);
+            $product = Product::query()
+                ->find($item['product_id']);
             if (!$product) continue;
+            $unitPrice = $product->unit_price;
 
-            // info($item['quantity']);
+            $taxRate = $product->tax_rate;
+            $totalTaxRate += $taxRate;
+
+            $totalTax += $product->tax_amount;
+
+            $discountRate = $product->discount_rate;
+            $totalDiscountRate += $discountRate;
+
+            $totalDiscount += $product->discount_amount;
+
 
             $quantity = $item['quantity'];
-            $unitPrice = (float)($item['unit_price'] ?? $product->unit_price ?? 0);
-            $taxRate = (float)($item['tax_rate'] ?? $product->tax_rate ?? 0);
-            $discountRate = (float)($item['discount_rate'] ?? $product->discount_rate ?? 0);
+            $subtotal += $quantity * $unitPrice;
+            $grandTotal += $subtotal - $product->discount_amount + $product->tax_amount;
 
-            $itemSubtotal = $quantity * $unitPrice;
-            $itemTaxAmount = $itemSubtotal * ($taxRate / 100);
-            $itemDiscountAmount = $itemSubtotal * ($discountRate / 100);
-            $itemTotal = $itemSubtotal + $itemTaxAmount - $itemDiscountAmount;
-
-            $subtotal += $itemSubtotal;
-            $totalTax += $itemTaxAmount;
-            $totalDiscount += $itemDiscountAmount;
-
-            // Update individual item calculations with formatted display values
-            $set("items.{$key}.subtotal", $itemSubtotal);
-            $set("items.{$key}.tax_amount", $itemTaxAmount);
-            $set("items.{$key}.discount_amount", $itemDiscountAmount);
-            $set("items.{$key}.total", $itemTotal);
         }
 
-        // Now apply invoice-level tax and discount
-        $invoiceTaxRate = (float)($get('tax_rate') ?? 0);
-        $invoiceDiscountRate = (float)($get('discount_rate') ?? 0);
-
-        // Calculate invoice-level tax and discount on the subtotal
-        $invoiceTaxAmount = $subtotal * ($invoiceTaxRate / 100);
-        $invoiceDiscountAmount = $subtotal * ($invoiceDiscountRate / 100);
-
-        // Add invoice-level tax and discount to the totals
-        $totalTax += $invoiceTaxAmount;
-        $totalDiscount += $invoiceDiscountAmount;
-
-        // Calculate final total
-        $total = $subtotal + $totalTax - $totalDiscount;
-
-        // Update invoice summary with formatted display values
-        $set('grand_subtotal', $subtotal);
+        $set('total_tax_rate', $totalTaxRate);
         $set('total_tax', $totalTax);
+        $set('grand_subtotal', $subtotal);
         $set('total_discount', $totalDiscount);
-        $set('grand_total', $total);
+        $set('total_discount_rate', $totalDiscountRate);
+        $set('grand_total', $grandTotal);
 
         // Update balance
         $amountPaid = (float)($get('amount_paid') ?? 0);
-        $balance = $total - $amountPaid;
+        $balance = $grandTotal - $amountPaid;
         $set('balance', $balance);
     }
 

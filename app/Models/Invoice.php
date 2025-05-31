@@ -13,27 +13,7 @@ class Invoice extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = [
-        'client_id',
-        'invoice_number',
-        'issue_date',
-        'due_date',
-        'grand_subtotal',
-        'tax_rate',
-        'tax_amount',
-        'discount_rate',
-        'discount_amount',
-        'grand_total',
-        'amount_paid',
-        'balance',
-        'status',
-        'notes',
-        'terms',
-        'is_recurring',
-        'recurring_frequency',
-        'recurring_start_date',
-        'recurring_end_date',
-        'recurring_invoice_number_prefix',
+    protected $guarded = ['subtotal'
     ];
 
     protected $casts = [
@@ -65,7 +45,7 @@ class Invoice extends Model
         });
 
         static::saving(function ($invoice) {
-            $invoice->calculateTotals();
+//            $invoice->calculateTotals();
         });
     }
 

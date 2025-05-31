@@ -10,19 +10,7 @@ class InvoiceItem extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'invoice_id',
-        'product_id',
-        'description',
-        'quantity',
-        'unit_price',
-        'tax_rate',
-        'tax_amount',
-        'discount_rate',
-        'discount_amount',
-        'subtotal',
-        'total',
-    ];
+    protected $guarded = ['subtotal'];
 
     protected $casts = [
         'quantity' => 'integer',
@@ -40,7 +28,7 @@ class InvoiceItem extends Model
         parent::boot();
 
         static::saving(function ($item) {
-            $item->calculateTotals();
+//            $item->calculateTotals();
         });
     }
 
