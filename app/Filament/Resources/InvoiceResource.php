@@ -13,9 +13,6 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 
 class InvoiceResource extends Resource
 {
@@ -119,9 +116,6 @@ class InvoiceResource extends Resource
                                             ->label('Unit Price')
                                             ->helperText('Price per unit')
                                             ->live()
-                                            ->afterStateUpdated(function (Set $set, Get $get) {
-//                                                static::updateTotals($get, $set);
-                                            })
                                             ->columnSpan(1),
                                     ])->afterStateUpdated(function ($state, Set $set, Get $get) {
 
@@ -130,18 +124,35 @@ class InvoiceResource extends Resource
                                                 ->find($state['product_id']);
 
                                             if ($product) {
-                                                $taxAmount = $product->unit_price * ($product->tax_rate / 100);
-                                                $discountAmount = $product->unit_price * ($product->discount_rate / 100);
-                                                $subTotal = $product->unit_price * $get('quantity') ?? 1;
-                                                $total = $subTotal - $discountAmount + $taxAmount;
+
+                                                $data = self::updateSingleProductTotals($product, $get('quantity'));
+                                                $set('tax_amount', $data['tax_amount']);
+                                                $set('discount_amount', $data['discount_amount']);
+
                                                 $set('unit_price', $product->unit_price);
                                                 $set('tax_rate', $product->tax_rate);
-                                                $set('tax_amount', $taxAmount * $get('quantity') ?? 1);
                                                 $set('discount_rate', $product->discount_rate);
-                                                $set('discount_amount', $discountAmount * $get('quantity') ?? 1);
-                                                $set('subtotal', $subTotal);
-                                                $set('total', $total);
-//                                                static::updateTotals($get, $set, $state);
+                                                $set('subtotal', $data['subtotal']);
+                                                $set('total', $data['total']);
+                                            }
+                                        }
+                                    })->afterStateHydrated(function ($state, Set $set, Get $get) {
+
+                                        if ($state) {
+                                            $product = Product::query()
+                                                ->find($state['product_id']);
+
+                                            if ($product) {
+
+                                                $data = self::updateSingleProductTotals($product, $get('quantity'));
+                                                $set('tax_amount', $data['tax_amount']);
+                                                $set('discount_amount', $data['discount_amount']);
+
+                                                $set('unit_price', $product->unit_price);
+                                                $set('tax_rate', $product->tax_rate);
+                                                $set('discount_rate', $product->discount_rate);
+                                                $set('subtotal', $data['subtotal']);
+                                                $set('total', $data['total']);
                                             }
                                         }
                                     }),
@@ -217,6 +228,8 @@ class InvoiceResource extends Resource
                             ->columnSpanFull()
                             ->live(),
                     ])->afterStateUpdated(function ($state, Get $get, Set $set) {
+                        static::updateTotals($get, $set, $state);
+                    })->afterStateHydrated(function ($state, Get $get, Set $set) {
                         static::updateTotals($get, $set, $state);
                     }),
 
@@ -393,12 +406,71 @@ class InvoiceResource extends Resource
             ]);
     }
 
-    protected static function updateLocalTotals($state)
+    protected static function updateSingleProductTotals(Product $product, $quantity): array
     {
+        $unitPrice = (float)($product->unit_price ?? 0);
+        $taxRate = (float)($product->tax_rate ?? 0);
+        $discountRate = (float)($product->discount_rate ?? 0);
+
+        $subtotal = $quantity * $unitPrice;
+        $taxAmount = $subtotal * ($taxRate / 100);
+        $discountAmount = $subtotal * ($discountRate / 100);
+        $total = $subtotal + $taxAmount - $discountAmount;
+        return [
+            'tax_amount' => $taxAmount,
+            'discount_amount' => $discountAmount,
+            'subtotal' => $subtotal,
+            'total' => $total,
+        ];
+    }
+
+    protected static function updateTotals(Get $get, Set $set): void
+    {
+        $selectedProducts = collect($get('items'))
+            ->filter(fn($item) => !empty($item['product_id'])
+                && !empty($item['quantity']));
+
+        $totalTaxRate = 0;
+        $totalTax = 0;
+
+        $totalDiscountRate = 0;
+        $totalDiscount = 0;
+
+        $subtotal = 0;
+
+        $products = Product::query()
+            ->find($selectedProducts->pluck('product_id'));
+
+
+        foreach ($products as $item) {
+            $qty = $selectedProducts->pluck('quantity', 'product_id');
+            $singleProductTotals = self::updateSingleProductTotals($item, $qty[$item->id]);
+
+            $totalTaxRate += $item->tax_rate;
+            $totalTax += $singleProductTotals['tax_amount'];
+
+            $totalDiscountRate += $item->discount_rate;
+            $totalDiscount += $singleProductTotals['discount_amount'];
+
+            $subtotal += $singleProductTotals['subtotal'];
+        }
+
+        $grandTotal = $subtotal + $totalTax - $totalDiscount;
+
+        $set('total_tax_rate', $totalTaxRate);
+        $set('total_tax', $totalTax);
+        $set('grand_subtotal', $subtotal);
+        $set('total_discount', $totalDiscount);
+        $set('total_discount_rate', $totalDiscountRate);
+        $set('grand_total', $grandTotal);
+
+        $amountPaid = (float)($get('amount_paid') ?? 0);
+        $balance = $grandTotal - $amountPaid;
+        $set('balance', $balance);
 
     }
 
-    protected static function updateTotals(Get $get, Set $set, $state): void
+    protected static function updateTotalsOld(Get $get, Set $set, $state): void
     {
         $items = collect($get('items'))
             ->filter(fn($item) => !empty($item['product_id']) && !empty($item['quantity']));

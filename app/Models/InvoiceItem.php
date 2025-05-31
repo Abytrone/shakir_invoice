@@ -23,14 +23,6 @@ class InvoiceItem extends Model
         'total' => 'decimal:2',
     ];
 
-    protected static function boot()
-    {
-        parent::boot();
-
-        static::saving(function ($item) {
-//            $item->calculateTotals();
-        });
-    }
 
     public function invoice(): BelongsTo
     {
@@ -42,18 +34,4 @@ class InvoiceItem extends Model
         return $this->belongsTo(Product::class);
     }
 
-    public function calculateTotals(): void
-    {
-        // Calculate subtotal
-        $this->subtotal = $this->quantity * $this->unit_price;
-
-        // Calculate item-level tax
-        $this->tax_amount = $this->subtotal * ($this->tax_rate / 100);
-
-        // Calculate item-level discount
-        $this->discount_amount = $this->subtotal * ($this->discount_rate / 100);
-
-        // Calculate final total
-        $this->total = $this->subtotal + $this->tax_amount - $this->discount_amount;
-    }
-}
+ }

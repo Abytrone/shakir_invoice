@@ -13,8 +13,7 @@ class Invoice extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $guarded = ['subtotal'
-    ];
+    protected $guarded = [];
 
     protected $casts = [
         'issue_date' => 'date',
@@ -44,9 +43,6 @@ class Invoice extends Model
             }
         });
 
-        static::saving(function ($invoice) {
-//            $invoice->calculateTotals();
-        });
     }
 
     public function client(): BelongsTo
@@ -64,50 +60,6 @@ class Invoice extends Model
         return $this->hasMany(Payment::class);
     }
 
-    public function calculateTotals(): void
-    {
-        // Calculate items subtotal
-        $subtotal = $this->items->sum('total');
-        $this->subtotal = $subtotal;
-
-        // Calculate invoice-level tax
-        $taxAmount = $subtotal * ($this->tax_rate / 100);
-        $this->tax_amount = $taxAmount;
-
-        // Calculate invoice-level discount
-        $discountAmount = $subtotal * ($this->discount_rate / 100);
-        $this->discount_amount = $discountAmount;
-
-        // Calculate final total
-        $this->grand_total = $subtotal + $taxAmount - $discountAmount;
-
-        // Update balance
-        $this->balance = $this->grand_total - $this->amount_paid;
-
-        // Update status based on balance
-        $this->updateStatus();
-    }
-
-    public function updateStatus(): void
-    {
-        if ($this->balance <= 0) {
-            $this->status = 'paid';
-        } elseif ($this->due_date < Carbon::today()) {
-            $this->status = 'overdue';
-        } elseif ($this->amount_paid > 0) {
-            $this->status = 'partial';
-        } elseif ($this->status === 'draft') {
-            $this->status = 'sent';
-        }
-    }
-
-    public function recordPayment(float $amount): void
-    {
-        $this->amount_paid += $amount;
-        $this->balance = $this->total - $this->amount_paid;
-        $this->updateStatus();
-        $this->save();
-    }
 
     public function isOverdue(): bool
     {
@@ -124,36 +76,4 @@ class Invoice extends Model
         return $this->amount_paid > 0 && $this->balance > 0;
     }
 
-    public function getNextRecurringDate(): ?Carbon
-    {
-        if (!$this->is_recurring || !$this->recurring_frequency) {
-            return null;
-        }
-
-        $lastDate = $this->recurring_start_date;
-        $now = Carbon::now();
-
-        while ($lastDate <= $now) {
-            switch ($this->recurring_frequency) {
-                case 'daily':
-                    $lastDate = $lastDate->addDay();
-                    break;
-                case 'weekly':
-                    $lastDate = $lastDate->addWeek();
-                    break;
-                case 'monthly':
-                    $lastDate = $lastDate->addMonth();
-                    break;
-                case 'yearly':
-                    $lastDate = $lastDate->addYear();
-                    break;
-            }
-
-            if ($this->recurring_end_date && $lastDate > $this->recurring_end_date) {
-                return null;
-            }
-        }
-
-        return $lastDate;
-    }
 }
