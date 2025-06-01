@@ -11,7 +11,7 @@ use Carbon\Carbon;
 
 class Invoice extends Model
 {
-    use HasFactory, SoftDeletes;
+    use SoftDeletes;
 
     protected $guarded = [];
 
@@ -36,11 +36,15 @@ class Invoice extends Model
         parent::boot();
 
         static::creating(function ($invoice) {
-            if (!$invoice->invoice_number) {
-                $latestInvoice = static::withTrashed()->latest()->first();
-                $nextNumber = $latestInvoice ? intval(substr($latestInvoice->invoice_number, 3)) + 1 : 1;
-                $invoice->invoice_number = 'INV' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
-            }
+            $latestInvoice = static::withTrashed()->latest()->first();
+            $nextNumber = $latestInvoice ? intval(substr($latestInvoice->invoice_number, 3)) + 1 : 1;
+            $invoice->invoice_number = 'INV' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
+
+            self::setRecurringEndDate($invoice);
+        });
+
+        static::updating(function ($invoice) {
+            self::setRecurringEndDate($invoice);
         });
 
     }
@@ -74,6 +78,18 @@ class Invoice extends Model
     public function isPartial(): bool
     {
         return $this->amount_paid > 0 && $this->balance > 0;
+    }
+
+    /**
+     * @param $invoice
+     * @return void
+     */
+    public static function setRecurringEndDate($invoice): void
+    {
+        if ($invoice->is_recurring) {
+            $days = ['daily' => 1, 'weekly' => 7, 'monthly' => 30, 'yearly' => 365][$invoice->recurring_frequency];
+            $invoice->next_recurring_date = $invoice->due_date->addDays($days);
+        }
     }
 
 }

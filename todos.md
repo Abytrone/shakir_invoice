@@ -1,0 +1,5 @@
+- [ ] Invoice
+  - [ ] setup recurring logic
+  - [ ] send email after creating invoice
+    - [ ] qr code
+    - [ ] payment link

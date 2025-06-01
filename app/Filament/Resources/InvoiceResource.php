@@ -117,45 +117,8 @@ class InvoiceResource extends Resource
                                             ->helperText('Price per unit')
                                             ->live()
                                             ->columnSpan(1),
-                                    ])->afterStateUpdated(function ($state, Set $set, Get $get) {
-
-                                        if ($state) {
-                                            $product = Product::query()
-                                                ->find($state['product_id']);
-
-                                            if ($product) {
-
-                                                $data = self::updateSingleProductTotals($product, $get('quantity'));
-                                                $set('tax_amount', $data['tax_amount']);
-                                                $set('discount_amount', $data['discount_amount']);
-
-                                                $set('unit_price', $product->unit_price);
-                                                $set('tax_rate', $product->tax_rate);
-                                                $set('discount_rate', $product->discount_rate);
-                                                $set('subtotal', $data['subtotal']);
-                                                $set('total', $data['total']);
-                                            }
-                                        }
-                                    })->afterStateHydrated(function ($state, Set $set, Get $get) {
-
-                                        if ($state) {
-                                            $product = Product::query()
-                                                ->find($state['product_id']);
-
-                                            if ($product) {
-
-                                                $data = self::updateSingleProductTotals($product, $get('quantity'));
-                                                $set('tax_amount', $data['tax_amount']);
-                                                $set('discount_amount', $data['discount_amount']);
-
-                                                $set('unit_price', $product->unit_price);
-                                                $set('tax_rate', $product->tax_rate);
-                                                $set('discount_rate', $product->discount_rate);
-                                                $set('subtotal', $data['subtotal']);
-                                                $set('total', $data['total']);
-                                            }
-                                        }
-                                    }),
+                                    ])->afterStateUpdated(self::setProductPricingDetails())
+                                    ->afterStateHydrated(self::setProductPricingDetails()),
 
                                 // Second row
                                 Forms\Components\Grid::make(4)
@@ -384,25 +347,7 @@ class InvoiceResource extends Resource
                             ->label('Frequency')
                             ->helperText('How often should the invoice be generated'),
 
-                        Forms\Components\DatePicker::make('recurring_start_date')
-                            ->visible(fn(Get $get) => $get('is_recurring'))
-                            ->required(fn(Get $get) => $get('is_recurring'))
-                            ->label('Start Date')
-                            ->helperText('When to start generating recurring invoices')
-                            ->minDate(now()),
-
-                        Forms\Components\DatePicker::make('recurring_end_date')
-                            ->visible(fn(Get $get) => $get('is_recurring'))
-                            ->label('End Date')
-                            ->helperText('When to stop generating recurring invoices (optional)')
-                            ->minDate(fn(Get $get) => $get('recurring_start_date')),
-
-                        Forms\Components\TextInput::make('recurring_invoice_number_prefix')
-                            ->visible(fn(Get $get) => $get('is_recurring'))
-                            ->label('Invoice Number Prefix')
-                            ->helperText('Prefix to identify recurring invoices (e.g., REC-)')
-                            ->placeholder('REC-'),
-                    ])->columns(2),
+                    ])->columns(),
             ]);
     }
 
@@ -468,6 +413,33 @@ class InvoiceResource extends Resource
         $balance = $grandTotal - $amountPaid;
         $set('balance', $balance);
 
+    }
+
+    /**
+     * @return \Closure
+     */
+    public static function setProductPricingDetails(): \Closure
+    {
+        return function ($state, Set $set, Get $get) {
+
+            if ($state) {
+                $product = Product::query()
+                    ->find($state['product_id']);
+
+                if ($product) {
+
+                    $data = self::updateSingleProductTotals($product, $get('quantity'));
+                    $set('tax_amount', $data['tax_amount']);
+                    $set('discount_amount', $data['discount_amount']);
+
+                    $set('unit_price', $product->unit_price);
+                    $set('tax_rate', $product->tax_rate);
+                    $set('discount_rate', $product->discount_rate);
+                    $set('subtotal', $data['subtotal']);
+                    $set('total', $data['total']);
+                }
+            }
+        };
     }
 
     protected static function updateTotalsOld(Get $get, Set $set, $state): void
