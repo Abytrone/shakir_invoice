@@ -12,7 +12,12 @@ class InvoiceController extends Controller
 {
     public function print(Invoice $invoice)
     {
-        $pdf = PDF::loadView('invoices.print', [
+        return view('invoices.print', [
+            'invoice' => $invoice,
+            'client' => $invoice->client,
+            'items' => $invoice->items,
+        ]);
+        return $pdf = PDF::loadView('invoices.print', [
             'invoice' => $invoice,
             'client' => $invoice->client,
             'items' => $invoice->items,

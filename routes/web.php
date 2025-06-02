@@ -14,3 +14,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/invoices/{invoice}/download', [InvoiceController::class, 'download'])->name('invoices.download');
     Route::post('/invoices/{invoice}/send', [InvoiceController::class, 'send'])->name('invoices.send');
 });
+
+Route::get('preview-invoice/{invoice}', function () {
+    return (new \App\Mail\InvoiceSent(\App\Models\Invoice::with('client')->first()))->render();
+})->name('preview-invoice');

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -47,6 +48,49 @@ class Invoice extends Model
             self::setRecurringEndDate($invoice);
         });
 
+    }
+
+    protected function subtotal(): Attribute
+    {
+        return Attribute::make(
+            get: function ($value, array $attributes) {
+                return $this->items->sum('total');
+            },
+            set: fn($value) => $value,
+        );
+    }
+
+    protected function discount(): Attribute
+    {
+        return Attribute::make(
+            get: function ($value, array $attributes) {
+                return $this->items->sum('total') * ($attributes['discount_rate'] / 100);
+            },
+            set: fn($value) => $value,
+        );
+    }
+    protected function tax(): Attribute
+    {
+        return Attribute::make(
+            get: function ($value, array $attributes) {
+                return $this->items->sum('total') * ($attributes['tax_rate'] / 100);
+            },
+            set: fn($value) => $value,
+        );
+    }
+
+    protected function total(): Attribute
+    {
+        return Attribute::make(
+            get: function ($value, array $attributes) {
+                $taxAmount = $attributes['tax_rate'] / 100 * $this->items->sum('total');
+
+                $discountAmount = $attributes['discount_rate'] / 100 * $this->items->sum('total');
+
+                return $this->items->sum('total') + $taxAmount - $discountAmount;
+            },
+            set: fn($value) => $value,
+        );
     }
 
     public function client(): BelongsTo
