@@ -13,9 +13,7 @@ return new class extends Migration
             $table->foreignId('invoice_id')->constrained()->cascadeOnDelete();
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();
             $table->integer('quantity');
-            $table->decimal('unit_price', 10, 2);
-            $table->decimal('tax_rate', 5, 2)->default(0);
-            $table->decimal('discount_rate', 5, 2)->default(0);
+            $table->decimal('unit_price', 10);
             $table->timestamps();
         });
     }
