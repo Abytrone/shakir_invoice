@@ -1,11 +1,13 @@
 <x-mail::message>
-# Introduction
+# Dear {{ $invoice->client->name }},
 
-The body of your message.
+We are pleased to inform you that your invoice #{{ $invoice->invoice_number }} has been successfully generated and is now
+available for download.
+<br>
+You can view and download your invoice using this <a href="{{route('invoices.download', $invoice)}}">link here</a>.
+<br>
+Please <a href="{{route('payments.store', $invoice)}}"> make payment</a> by the due date to avoid any late fees.
 
-<x-mail::button :url="route('invoices.print', $invoice)">
-Download Invoice
-</x-mail::button>
 
 Thanks,<br>
 {{ config('app.name') }}

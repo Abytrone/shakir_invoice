@@ -19,7 +19,7 @@ class InvoiceSent extends Mailable
      */
     public function __construct(public Invoice $invoice)
     {
-        //
+        $this->invoice->load(['client', 'items']);
     }
 
     /**

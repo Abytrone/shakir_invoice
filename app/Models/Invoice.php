@@ -69,6 +69,7 @@ class Invoice extends Model
             set: fn($value) => $value,
         );
     }
+
     protected function tax(): Attribute
     {
         return Attribute::make(
@@ -116,12 +117,17 @@ class Invoice extends Model
 
     public function isPaid(): bool
     {
-        return $this->balance <= 0;
+        return $this->payments->sum('amount') >= $this->items->sum('total');
     }
 
     public function isPartial(): bool
     {
-        return $this->amount_paid > 0 && $this->balance > 0;
+        return $this->payments->sum('amount') > 0 && $this->balance > 0;
+    }
+
+    public function amountToPay()
+    {
+        return $this->total - $this->payments->sum('amount');
     }
 
     /**

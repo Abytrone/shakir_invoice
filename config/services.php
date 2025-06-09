@@ -13,6 +13,10 @@ return [
     | a conventional file to locate the various service credentials.
     |
     */
+    'paystack'=>[
+        'test_key' => env('PAYSTACK_KEY_TEST'),
+        'live_key' => env('PAYSTACK_KEY_LIVE'),
+    ],
 
     'postmark' => [
         'token' => env('POSTMARK_TOKEN'),
