@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\InvoiceResource\Pages;
+use App\Mail\InvoiceSent;
 use App\Models\Invoice;
 use App\Models\Product;
 use Filament\Forms;
@@ -13,6 +14,9 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class InvoiceResource extends Resource
 {
@@ -62,12 +66,7 @@ class InvoiceResource extends Resource
                             ->required()
                             ->label('Status')
                             ->helperText('Current status of the invoice')
-                            ->reactive()
-                            ->afterStateUpdated(function ($state, callable $set) {
-                                if ($state === 'paid') {
-                                    $set('amount_paid', $set('total'));
-                                }
-                            }),
+                            ->reactive(),
                     ])->columns(4),
 
                 Forms\Components\Section::make('Invoice Items')
@@ -102,9 +101,6 @@ class InvoiceResource extends Resource
                                             ->minValue(1)
                                             ->helperText('Number of units')
                                             ->live()
-                                            ->afterStateUpdated(function (Set $set, Get $get) {
-//                                                static::updateTotals($get, $set);
-                                            })
                                             ->columnSpan(1),
 
                                         Forms\Components\TextInput::make('unit_price')
@@ -202,28 +198,6 @@ class InvoiceResource extends Resource
                                     ->label('Grand Total')
                                     ->helperText('Final invoice amount')
                                     ->columnSpan(1),
-
-                                Forms\Components\TextInput::make('amount_paid')
-                                    ->numeric()
-                                    ->disabled(fn(Get $get) => !$get('total'))
-                                    ->default(0)
-                                    ->minValue(0)
-                                    ->maxValue(fn(Get $get) => $get('total'))
-                                    ->prefix('GHS')
-                                    ->label('Amount Paid')
-                                    ->helperText('Amount received from client')
-                                    ->live()
-                                    ->columnSpan(1),
-
-                                Forms\Components\TextInput::make('balance')
-                                    ->numeric()
-                                    ->default(0)
-                                    ->minValue(0)
-                                    ->disabled()
-                                    ->prefix('GHS')
-                                    ->label('Balance')
-                                    ->helperText('Remaining amount to be paid')
-                                    ->columnSpan(1),
                             ]),
                     ]),
 
@@ -294,32 +268,18 @@ class InvoiceResource extends Resource
             $subtotal += $singleProductTotals['subtotal'];
         }
 
-        $taxAmount = $get('tax_rate') ?
-            $subtotal * ($get('tax_rate') / 100) :
-            0;
+        $taxAmount = $subtotal * (($get('tax_rate') ?? 0) / 100);
 
-        $discountAmount = $get('discount_rate') ?
-            $subtotal * ($get('discount_rate') / 100) :
-            0;
+        $discountAmount = $subtotal * (($get('discount_rate') ?? 0) / 100);
+
 
         $grandTotal = $subtotal + $taxAmount - $discountAmount;
+        Log::info('', [round($subtotal, 2), round($grandTotal, 2)]);
 
-        $set('tax_amount', number_format($taxAmount, 2));
-        $set('discount_amount', number_format($discountAmount, 2));
-        $set('subtotal', number_format($subtotal, 2));
-        $set('total', number_format($grandTotal, 2));
-
-        $amountPaid = $get('amount_paid') ?? 0;
-        $balance = $grandTotal - $amountPaid;
-        if ($amountPaid && $balance) {
-            if ($amountPaid >= $balance) {
-                $set('status', 'paid');
-            } elseif ($amountPaid > 0) {
-                $set('status', 'partial');
-            }
-        }
-
-        $set('balance', number_format($balance, 2));
+        $set('tax_amount', round($taxAmount, 2));
+        $set('discount_amount', round($discountAmount, 2));
+        $set('subtotal', round($subtotal, 2));
+        $set('total', round($grandTotal, 2));
 
     }
 
@@ -361,8 +321,8 @@ class InvoiceResource extends Resource
                     ->date()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('grand_total')
-                    ->money('GHS')
+                Tables\Columns\TextColumn::make('total')
+                    ->label('Total (GHS)')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('status')
@@ -378,6 +338,9 @@ class InvoiceResource extends Resource
                 Tables\Columns\IconColumn::make('is_recurring')
                     ->boolean()
                     ->label('Recurring'),
+                Tables\Columns\TextColumn::make('next_recurring_date')
+                    ->label('Next Recurring')
+                    ->date(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
@@ -408,7 +371,11 @@ class InvoiceResource extends Resource
 
                     Tables\Actions\Action::make('send')
                         ->icon('heroicon-o-paper-airplane')
-                        ->action(fn(Invoice $record) => $record->update(['status' => 'sent']))
+                        ->action(function (Invoice $record) {
+                            $record->update(['status' => 'sent']);
+                            Mail::to($record->client->email)
+                                ->send(new InvoiceSent($record));
+                        })
                         ->requiresConfirmation(),
 
                     Tables\Actions\EditAction::make(),

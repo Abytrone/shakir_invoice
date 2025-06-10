@@ -6,10 +6,10 @@ use App\Models\Invoice;
 use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
 {
-    //
     public function initialize(Invoice $invoice, Request $request)
     {
         if ($invoice->isPaid()) {
@@ -18,8 +18,8 @@ class PaymentController extends Controller
                 'message' => 'This invoice has already been paid.',
             ]);
         }
-
-        $remainingBalance = (int)number_format($invoice->amountToPay(), 2) * 100;
+        Log::info('amount to pay: ' . $invoice->amount_to_pay);
+        $remainingBalance = round($invoice->amount_to_pay, 2) * 100;
 
         $data = [
             "email" => $invoice->client->email,
@@ -46,7 +46,7 @@ class PaymentController extends Controller
 
 
         $res = json_decode($response, true);
-
+        Log::info('reference: ' . $res['data']['reference']);
         return redirect($res['data']['authorization_url']);
 
     }
@@ -68,7 +68,7 @@ class PaymentController extends Controller
 
         $invoiceNumber = $response['data']['metadata']['custom_fields'][1]['value'];
         $amount = $response['data']['amount'] / 100;
-        $channel = $response['data']['channel'] ;
+        $channel = $response['data']['channel'];
 
         $invoice = Invoice::where('invoice_number', $invoiceNumber)->first();
 
@@ -79,12 +79,22 @@ class PaymentController extends Controller
             ]);
         }
 
-        $invoice->payments()->firstOrCreate(
-            ['reference_number' => $ref], [
-            'amount' => $amount,
-            'note' => '...',
-            'payment_method' => $channel,
-        ]);
+        $invoice->payments()
+            ->firstOrCreate(
+                ['reference_number' => $ref], [
+                'amount' => $amount,
+                'note' => '...',
+                'payment_method' => $channel,
+            ]);
+
+        if ($invoice->isPaid()) {
+            $invoice->update(['status' => 'paid']);
+        }
+
+        // in case we'll allow partial payments in the future
+//        if ($invoice->isPartial()) {
+//            $invoice->update(['status' => 'partial']);
+//        }
 
         //todo: notify client via email
 

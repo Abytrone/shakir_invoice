@@ -32,23 +32,6 @@ class Invoice extends Model
         'balance' => 'decimal:2',
     ];
 
-    protected static function boot()
-    {
-        parent::boot();
-
-        static::creating(function ($invoice) {
-            $latestInvoice = static::withTrashed()->latest()->first();
-            $nextNumber = $latestInvoice ? intval(substr($latestInvoice->invoice_number, 3)) + 1 : 1;
-            $invoice->invoice_number = 'INV' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
-
-            self::setRecurringEndDate($invoice);
-        });
-
-        static::updating(function ($invoice) {
-            self::setRecurringEndDate($invoice);
-        });
-
-    }
 
     protected function subtotal(): Attribute
     {
@@ -117,7 +100,7 @@ class Invoice extends Model
 
     public function isPaid(): bool
     {
-        return $this->payments->sum('amount') >= $this->items->sum('total');
+        return $this->payments->sum('amount') >= $this->total;
     }
 
     public function isPartial(): bool
@@ -125,9 +108,20 @@ class Invoice extends Model
         return $this->payments->sum('amount') > 0 && $this->balance > 0;
     }
 
-    public function amountToPay()
+    protected function amountPaid(): Attribute
     {
-        return $this->total - $this->payments->sum('amount');
+        return Attribute::make(
+            get: fn($value, array $attributes) => $this->payments->sum('amount'),
+            set: fn($value) => $value,
+        );
+    }
+
+    protected function amountToPay(): Attribute
+    {
+        return Attribute::make(
+            get: fn($value, array $attributes) => $this->total - $this->payments->sum('amount'),
+            set: fn($value) => $value,
+        );
     }
 
     /**
@@ -140,6 +134,24 @@ class Invoice extends Model
             $days = ['daily' => 1, 'weekly' => 7, 'monthly' => 30, 'yearly' => 365][$invoice->recurring_frequency];
             $invoice->next_recurring_date = $invoice->due_date->addDays($days);
         }
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($invoice) {
+            $latestInvoice = static::withTrashed()->latest()->first();
+            $nextNumber = $latestInvoice ? intval(substr($latestInvoice->invoice_number, 3)) + 1 : 1;
+            $invoice->invoice_number = 'INV' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
+
+            self::setRecurringEndDate($invoice);
+        });
+
+        static::updating(function ($invoice) {
+            self::setRecurringEndDate($invoice);
+        });
+
     }
 
 }

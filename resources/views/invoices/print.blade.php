@@ -122,7 +122,7 @@
         </tr>
         <tr>
             <td><strong>Balance(GHS):</strong></td>
-            <td style="text-align: right;">{{ number_format($invoice->total -$invoice->amount_paid, 2) }}</td>
+            <td style="text-align: right;">{{ number_format($invoice->amount_to_pay, 2) }}</td>
         </tr>
     </table>
 </div>

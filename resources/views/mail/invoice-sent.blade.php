@@ -6,7 +6,7 @@ available for download.
 <br>
 You can view and download your invoice using this <a href="{{route('invoices.download', $invoice)}}">link here</a>.
 <br>
-Please <a href="{{route('payments.store', $invoice)}}"> make payment</a> by the due date to avoid any late fees.
+Please <a href="{{route('payments.initialize', $invoice)}}"> make payment</a> by the due date to avoid any late fees.
 
 
 Thanks,<br>
