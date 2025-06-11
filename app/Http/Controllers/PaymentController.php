@@ -18,13 +18,12 @@ class PaymentController extends Controller
                 'message' => 'This invoice has already been paid.',
             ]);
         }
-        Log::info('amount to pay: ' . $invoice->amount_to_pay);
-        $remainingBalance = round($invoice->amount_to_pay, 2) * 100;
-
+        Log::info('amount to pay: ' . $invoice->amount_to_pay * 100);
+        $remainingBalance = $invoice->amount_to_pay * 100;
         $data = [
             "email" => $invoice->client->email,
             "mobile" => $invoice->client->phone,
-            "amount" => $remainingBalance,
+            "amount" => (int)$remainingBalance,
             "metadata" => [
                 "custom_fields" => [
                     [
@@ -46,6 +45,12 @@ class PaymentController extends Controller
 
 
         $res = json_decode($response, true);
+        if (!$res['status']) {
+            return view('payments.success', [
+                'invoice' => null,
+                'message' => 'Failed to initialize payment.',
+            ]);
+        }
         Log::info('reference: ' . $res['data']['reference']);
         return redirect($res['data']['authorization_url']);
 

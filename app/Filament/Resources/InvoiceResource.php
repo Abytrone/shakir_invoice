@@ -323,7 +323,13 @@ class InvoiceResource extends Resource
 
                 Tables\Columns\TextColumn::make('total')
                     ->label('Total (GHS)')
-                    ->sortable(),
+                    ->sortable()
+                    ->numeric(),
+
+                Tables\Columns\TextColumn::make('amount_paid')
+                    ->label('Total (GHS)')
+                    ->sortable()
+                    ->numeric(),
 
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
@@ -370,6 +376,7 @@ class InvoiceResource extends Resource
                         ->openUrlInNewTab(),
 
                     Tables\Actions\Action::make('send')
+                        ->visible(fn(Invoice $record) => $record->status == 'draft')
                         ->icon('heroicon-o-paper-airplane')
                         ->action(function (Invoice $record) {
                             $record->update(['status' => 'sent']);
@@ -378,8 +385,10 @@ class InvoiceResource extends Resource
                         })
                         ->requiresConfirmation(),
 
-                    Tables\Actions\EditAction::make(),
-                    Tables\Actions\DeleteAction::make(),
+                    Tables\Actions\EditAction::make()
+                        ->visible(fn(Invoice $record) => $record->status == 'draft'),
+                    Tables\Actions\DeleteAction::make()
+                        ->visible(fn(Invoice $record) => $record->status == 'draft'),
                 ]),
             ])
             ->bulkActions([

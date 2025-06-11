@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -67,11 +66,15 @@ class Invoice extends Model
     {
         return Attribute::make(
             get: function ($value, array $attributes) {
-                $taxAmount = $attributes['tax_rate'] / 100 * $this->items->sum('total');
+                $itemsSum = $this->items->sum('total');
 
-                $discountAmount = $attributes['discount_rate'] / 100 * $this->items->sum('total');
+                $taxAmount = $attributes['tax_rate'] / 100 * $itemsSum;
 
-                return $this->items->sum('total') + $taxAmount - $discountAmount;
+                $discountAmount = $attributes['discount_rate'] / 100 * $itemsSum;
+
+                $result = $itemsSum + $taxAmount - $discountAmount;
+
+                return round($result, 2);
             },
             set: fn($value) => $value,
         );
@@ -119,7 +122,7 @@ class Invoice extends Model
     protected function amountToPay(): Attribute
     {
         return Attribute::make(
-            get: fn($value, array $attributes) => $this->total - $this->payments->sum('amount'),
+            get: fn($value, array $attributes) => round($this->total - $this->payments->sum('amount'), 2),
             set: fn($value) => $value,
         );
     }
