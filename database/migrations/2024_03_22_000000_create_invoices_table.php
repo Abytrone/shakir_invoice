@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
         Schema::create('invoices', function (Blueprint $table) {
@@ -25,7 +24,8 @@ return new class extends Migration
             $table->boolean('is_recurring')->default(false);
             $table->string('recurring_frequency')->nullable(); // daily, weekly, monthly, yearly
             $table->date('next_recurring_date')->nullable();
-
+            $table->date('recurring_end_date')->nullable();
+            $table->boolean('has_next')->default(false);
             $table->timestamps();
             $table->softDeletes();
         });

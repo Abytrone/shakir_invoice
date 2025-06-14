@@ -24,6 +24,9 @@ class Kernel extends ConsoleKernel
             ->daily()
             ->at('00:00')
             ->appendOutputTo(storage_path('logs/recurring-invoices.log'));
+
+        $schedule->command('invoices:update-invoice-status')
+            ->everyFiveSeconds();
     }
 
     /**

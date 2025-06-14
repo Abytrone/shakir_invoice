@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,7 +12,7 @@ use Carbon\Carbon;
 
 class Invoice extends Model
 {
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
     protected $guarded = [];
 
@@ -19,17 +20,37 @@ class Invoice extends Model
         'issue_date' => 'date',
         'due_date' => 'date',
         'recurring_start_date' => 'date',
-        'recurring_end_date' => 'date',
         'is_recurring' => 'boolean',
-        'grand_subtotal' => 'decimal:2',
         'tax_rate' => 'decimal:2',
-        'tax_amount' => 'decimal:2',
         'discount_rate' => 'decimal:2',
-        'discount_amount' => 'decimal:2',
-        'grand_total' => 'decimal:2',
-        'amount_paid' => 'decimal:2',
-        'balance' => 'decimal:2',
+        'has_next' => 'boolean',
     ];
+
+
+    public function markAsPaid(): void
+    {
+        $this->update(['status' => 'paid']);
+    }
+
+    public function markAsOverdue(): void
+    {
+        $this->update(['status' => 'overdue']);
+    }
+
+    public function markAsSent(): void
+    {
+        $this->update(['status' => 'sent']);
+    }
+
+    public function markAsDraft(): void
+    {
+        $this->update(['status' => 'draft']);
+    }
+
+    public function markAsCancelled(): void
+    {
+        $this->update(['status' => 'cancelled']);
+    }
 
 
     protected function subtotal(): Attribute
@@ -96,9 +117,19 @@ class Invoice extends Model
     }
 
 
+    public function isSent(): bool
+    {
+        return $this->status === 'sent';
+    }
+
     public function isOverdue(): bool
     {
-        return $this->due_date < Carbon::today() && $this->balance > 0;
+        return $this->due_date < Carbon::today();
+    }
+
+    public function isDraft(): bool
+    {
+        return $this->status === 'draft';
     }
 
     public function isPaid(): bool
@@ -134,8 +165,8 @@ class Invoice extends Model
     public static function setRecurringEndDate($invoice): void
     {
         if ($invoice->is_recurring) {
-            $days = ['daily' => 1, 'weekly' => 7, 'monthly' => 30, 'yearly' => 365][$invoice->recurring_frequency];
-            $invoice->next_recurring_date = $invoice->due_date->addDays($days);
+//            $days = ['daily' => 1, 'weekly' => 7, 'monthly' => 30, 'yearly' => 365][$invoice->recurring_frequency];
+            $invoice->next_recurring_date = $invoice->due_date;//->addDays($days);
         }
     }
 

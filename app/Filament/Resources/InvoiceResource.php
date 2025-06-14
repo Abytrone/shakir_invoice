@@ -385,10 +385,10 @@ class InvoiceResource extends Resource
                         })
                         ->requiresConfirmation(),
 
-                    Tables\Actions\EditAction::make()
-                        ->visible(fn(Invoice $record) => $record->status == 'draft'),
+                    Tables\Actions\EditAction::make(),
+//                        ->visible(fn(Invoice $record) => $record->status == 'draft'),
                     Tables\Actions\DeleteAction::make()
-                        ->visible(fn(Invoice $record) => $record->status == 'draft'),
+//                        ->visible(fn(Invoice $record) => $record->status == 'draft'),
                 ]),
             ])
             ->bulkActions([
