@@ -29,7 +29,8 @@ class Invoice extends Model
 
     public function markAsPaid(): void
     {
-        $this->update(['status' => 'paid']);
+        if ($this->status != 'paid')
+            $this->update(['status' => 'paid']);
     }
 
     public function markAsOverdue(): void
@@ -39,17 +40,20 @@ class Invoice extends Model
 
     public function markAsSent(): void
     {
-        $this->update(['status' => 'sent']);
+        if ($this->status != 'sent')
+            $this->update(['status' => 'sent']);
     }
 
     public function markAsDraft(): void
     {
-        $this->update(['status' => 'draft']);
+        if ($this->status != 'draft')
+            $this->update(['status' => 'draft']);
     }
 
     public function markAsCancelled(): void
     {
-        $this->update(['status' => 'cancelled']);
+        if ($this->status != 'cancelled')
+            $this->update(['status' => 'cancelled']);
     }
 
 

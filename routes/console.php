@@ -1,8 +1,10 @@
 <?php
 
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
+Schedule::command('invoices:generate-recurring')
+    ->daily()
+    ->at('00:00')
+    ->appendOutputTo(storage_path('logs/recurring-invoices.log'));
 
-Artisan::command('inspire', function () {
-    $this->comment(Inspiring::quote());
-})->purpose('Display an inspiring quote');
+Schedule::command('invoices:update-invoice-status')
+    ->EveryFiveMinutes()
+    ->appendOutputTo(storage_path('logs/update-invoice-status.log'));
