@@ -22,3 +22,9 @@ Route::get('/payments/{invoice}', [PaymentController::class, 'initialize'])->nam
 Route::get('preview-invoice/{invoice}', function () {
     return (new \App\Mail\InvoiceSent(\App\Models\Invoice::with('client')->first()))->render();
 })->name('preview-invoice');
+
+
+Route::get('/deploy-fresh', function () {
+    \Artisan::call('migrate:fresh --seed');
+    return 'Database migrated and seeded successfully.';
+})->name('deploy-fresh');//->middleware('auth');
