@@ -24,7 +24,9 @@ Route::get('preview-invoice/{invoice}', function () {
 })->name('preview-invoice');
 
 
-Route::get('/deploy-fresh', function () {
-    \Artisan::call('migrate:fresh --seed');
-    return 'Database migrated and seeded successfully.';
-})->name('deploy-fresh');//->middleware('auth');
+
+Route::get('/test-mail', function () {
+
+     Mail::to('mahmudsheikh25@gmail.com
+        ->send(new \App\Mail\TestMail())');
+})->name('deploy-fresh');
