@@ -169,7 +169,6 @@ class Invoice extends Model
     public static function setRecurringEndDate($invoice): void
     {
         if ($invoice->is_recurring) {
-//            $days = ['daily' => 1, 'weekly' => 7, 'monthly' => 30, 'yearly' => 365][$invoice->recurring_frequency];
             $invoice->next_recurring_date = $invoice->due_date;//->addDays($days);
         }
     }

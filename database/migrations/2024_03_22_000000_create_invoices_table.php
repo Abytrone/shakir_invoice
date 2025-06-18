@@ -22,7 +22,7 @@ return new class extends Migration {
 
             // Recurring invoice fields
             $table->boolean('is_recurring')->default(false);
-            $table->string('recurring_frequency')->nullable(); // daily, weekly, monthly, yearly
+            $table->string('recurring_frequency')->nullable(); // monthly, yearly
             $table->date('next_recurring_date')->nullable();
             $table->date('recurring_end_date')->nullable();
             $table->boolean('has_next')->default(false);

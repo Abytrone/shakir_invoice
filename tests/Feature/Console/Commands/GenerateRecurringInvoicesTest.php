@@ -3,11 +3,12 @@
 namespace Tests\Feature\Console\Commands;
 
 use App\Console\Commands\GenerateRecurringInvoices;
+use App\Constants\InvoiceStatus;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -18,6 +19,7 @@ class GenerateRecurringInvoicesTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Mail::fake();
         Carbon::setTestNow('2023-01-01 00:00:00');
     }
 
@@ -56,7 +58,6 @@ class GenerateRecurringInvoicesTest extends TestCase
         $this->assertEquals('draft', $newInvoice->status);
         $this->assertTrue($newInvoice->is_recurring);
         $this->assertEquals(now()->toDateString(), $newInvoice->issue_date->toDateString());
-//        $this->assertMatchesRegularExpression('/^REC-\d{6}$/', $newInvoice->invoice_number);
 
         // Assert items were copied
         $this->assertCount(2, $newInvoice->items);
@@ -86,7 +87,7 @@ class GenerateRecurringInvoicesTest extends TestCase
         Invoice::factory()
             ->create([
                 'is_recurring' => true,
-                'status' => 'pending',
+                'status' => InvoiceStatus::UNPAID,
                 'next_recurring_date' => now(),
             ]);
 
@@ -129,31 +130,6 @@ class GenerateRecurringInvoicesTest extends TestCase
             ->assertExitCode(0);
 
         $this->assertEquals(1, Invoice::count());
-    }
-
-    #[Test] public function it_calculates_next_dates_correctly_for_all_frequencies()
-    {
-        $command = new GenerateRecurringInvoices();
-
-        // Daily
-        $result = $command->calculateNextDate('2023-01-01', 'daily');
-        $this->assertEquals('2023-01-02', $result->toDateString());
-
-        // Weekly
-        $result = $command->calculateNextDate('2023-01-01', 'weekly');
-        $this->assertEquals('2023-01-08', $result->toDateString());
-
-        // Monthly
-        $result = $command->calculateNextDate('2023-01-01', 'monthly');
-        $this->assertEquals('2023-02-01', $result->toDateString());
-
-        // Quarterly
-        $result = $command->calculateNextDate('2023-01-01', 'quarterly');
-        $this->assertEquals('2023-04-01', $result->toDateString());
-
-        // Yearly
-        $result = $command->calculateNextDate('2023-01-01', 'yearly');
-        $this->assertEquals('2024-01-01', $result->toDateString());
     }
 
 

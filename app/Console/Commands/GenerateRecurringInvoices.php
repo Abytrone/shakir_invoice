@@ -2,11 +2,13 @@
 
 namespace App\Console\Commands;
 
+use App\Mail\InvoiceSent;
 use App\Models\Invoice;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class GenerateRecurringInvoices extends Command
 {
@@ -24,7 +26,18 @@ class GenerateRecurringInvoices extends Command
                 ->where('is_recurring', true)
                 ->where('status', 'paid')
                 ->where('has_next', false)
-                ->where('next_recurring_date', '<=', now())
+                ->where(function ($query) {
+                    $query->where(function ($subQuery) {
+                        $subQuery->where('recurring_frequency', 'monthly')
+                            ->where('next_recurring_date', '<=', now()->addDays(7)); // 7-day notice
+                    })
+
+                        ->orWhere(function ($subQuery) {
+                            $subQuery->where('recurring_frequency', 'yearly')
+                                ->where('next_recurring_date', '<=', now()->addDays(20)); // 20-day notice
+                        });
+
+                })
                 ->where(function ($query) {
                     $query->whereNull('recurring_end_date')
                         ->orWhere('recurring_end_date', '>=', now());
@@ -33,9 +46,7 @@ class GenerateRecurringInvoices extends Command
             //todo: if necessary add condition to get is the recurring is stopped
 
             foreach ($recurringInvoices as $invoice) {
-                $lastGeneratedDate = $invoice->next_recurring_date;
-                $nextDate = $this->calculateNextDate($lastGeneratedDate, $invoice->recurring_frequency);
-                $this->generateNextInvoice($invoice, $nextDate);
+                $this->generateNextInvoice($invoice);
             }
 
             DB::commit();
@@ -52,15 +63,12 @@ class GenerateRecurringInvoices extends Command
     {
         $date = Carbon::parse($lastDate);
         return match ($frequency) {
-            'daily' => $date->addDay(),
-            'weekly' => $date->addWeek(),
-            'quarterly' => $date->addQuarter(),
             'yearly' => $date->addYears(),
             default => $date->addMonths(),
         };
     }
 
-    protected function generateNextInvoice(Invoice $originalInvoice, Carbon $nextDate): void
+    protected function generateNextInvoice(Invoice $originalInvoice): void
     {
         // Create new invoice
         $newInvoice = $originalInvoice->replicate();
@@ -70,9 +78,6 @@ class GenerateRecurringInvoices extends Command
         $newInvoice->updated_at = now();
 
         $newInvoice->due_date = match ($newInvoice->invoice_frequency) {
-            'daily' => $newInvoice->due_date->addDay(),
-            'weekly' => $newInvoice->due_date->addWeek(),
-            'quarterly' => $newInvoice->due_date->addQuarter(),
             'yearly' => $newInvoice->due_date->addYears(),
             default => $newInvoice->due_date->addMonths(),
         };
@@ -95,6 +100,8 @@ class GenerateRecurringInvoices extends Command
 
         $originalInvoice->update(['has_next' => true]);
 
+        Mail::to($newInvoice->client->email)
+            ->queue(new InvoiceSent($newInvoice));
 
         $this->info("Generated new invoice {$newInvoice->invoice_number} for {$originalInvoice->invoice_number}");
     }

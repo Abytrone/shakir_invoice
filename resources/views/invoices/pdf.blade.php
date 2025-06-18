@@ -107,7 +107,7 @@
             <h2>{{ $invoice->invoice_number }}</h2>
         </div>
         <div class="company-info">
-            <strong>Your Company Name</strong><br>
+            <strong>Shakir Dynamics</strong><br>
             123 Business Street<br>
             City, State 12345<br>
             contact@yourcompany.com

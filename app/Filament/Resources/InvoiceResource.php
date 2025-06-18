@@ -225,8 +225,6 @@ class InvoiceResource extends Resource
 
                         Forms\Components\Select::make('recurring_frequency')
                             ->options([
-                                'daily' => 'Daily',
-                                'weekly' => 'Weekly',
                                 'monthly' => 'Monthly',
                                 'yearly' => 'Yearly',
                             ])
