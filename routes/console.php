@@ -11,5 +11,5 @@ Schedule::command('invoices:update-invoice-status')
     ->appendOutputTo(storage_path('logs/update-invoice-status.log'));
 
 Schedule::command('app:test-mail')
-    ->everyFiveMinutes()
+    ->everyFiveMinute()
     ->appendOutputTo(storage_path('logs/test-mail.log'));
