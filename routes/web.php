@@ -24,9 +24,17 @@ Route::get('preview-invoice/{invoice}', function () {
 })->name('preview-invoice');
 
 
-
 Route::get('/test-mail', function () {
 
-     Mail::to('mahmudsheikh25@gmail.com
+    Mail::to('mahmudsheikh25@gmail.com
         ->send(new \App\Mail\TestMail())');
 })->name('deploy-fresh');
+
+
+Route::get('/cache-clear', function () {
+    \Artisan::call('config:clear');
+    \Artisan::call('cache:clear');
+    \Artisan::call('view:clear');
+    \Artisan::call('route:clear');
+    return 'Cache cleared successfully!';
+})->name('cache-clear');
