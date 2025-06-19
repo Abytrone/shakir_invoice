@@ -114,22 +114,54 @@ class GenerateRecurringInvoicesTest extends TestCase
     }
 
     #[Test]
-    public function it_does_not_generate_invoices_for_future_recurring_dates()
+    public function it_does_generate_invoices_for_overdue_but_paid()
     {
-
-
         Invoice::factory()
             ->create([
                 'is_recurring' => true,
                 'status' => 'paid',
                 'has_next' => false,
                 'recurring_frequency' => 'monthly',
-                'due_date' => now()->addMonths(),
+                'due_date' => now()->subDays(20),
             ]);
         $this->artisan(GenerateRecurringInvoices::class)
             ->assertExitCode(0);
 
-        $this->assertEquals(1, Invoice::count());
+        $this->assertEquals(2, Invoice::count());
+    }
+
+    #[Test]
+    public function it_generates_invoices_that_are_monthly_with_7_days_window()
+    {
+        Invoice::factory()
+            ->create([
+                'is_recurring' => true,
+                'status' => 'paid',
+                'has_next' => false,
+                'recurring_frequency' => 'monthly',
+                'due_date' => now()->addDays(7),
+            ]);
+        $this->artisan(GenerateRecurringInvoices::class)
+            ->assertExitCode(0);
+
+        $this->assertEquals(2, Invoice::count());
+    }
+
+    #[Test]
+    public function it_generates_invoices_that_are_yearly_with_20_days_window()
+    {
+        Invoice::factory()
+            ->create([
+                'is_recurring' => true,
+                'status' => 'paid',
+                'has_next' => false,
+                'recurring_frequency' => 'yearly',
+                'due_date' => now()->addDays(20),
+            ]);
+        $this->artisan(GenerateRecurringInvoices::class)
+            ->assertExitCode(0);
+
+        $this->assertEquals(2, Invoice::count());
     }
 
 

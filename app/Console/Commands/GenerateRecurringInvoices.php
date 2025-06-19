@@ -27,24 +27,24 @@ class GenerateRecurringInvoices extends Command
                 ->where('status', 'paid')
                 ->where('has_next', false)
                 ->where(function ($query) {
+                    $query->whereNull('recurring_end_date')
+                        ->orWhere('recurring_end_date', '>=', now());
+                })
+                ->where(function ($query) {
+                    // And meets the frequency conditions
                     $query->where(function ($subQuery) {
                         $subQuery->where('recurring_frequency', 'monthly')
                             ->where('next_recurring_date', '<=', now()->addDays(7)); // 7-day notice
                     })
-
                         ->orWhere(function ($subQuery) {
                             $subQuery->where('recurring_frequency', 'yearly')
                                 ->where('next_recurring_date', '<=', now()->addDays(20)); // 20-day notice
                         });
-
-                })
-                ->where(function ($query) {
-                    $query->whereNull('recurring_end_date')
-                        ->orWhere('recurring_end_date', '>=', now());
                 })
                 ->get();
+//            info($recurringInvoices);
             //todo: if necessary add condition to get is the recurring is stopped
-
+//            dd();
             foreach ($recurringInvoices as $invoice) {
                 $this->generateNextInvoice($invoice);
             }
