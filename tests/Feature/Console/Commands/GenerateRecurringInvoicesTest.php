@@ -139,12 +139,29 @@ class GenerateRecurringInvoicesTest extends TestCase
                 'status' => 'paid',
                 'has_next' => false,
                 'recurring_frequency' => 'monthly',
-                'due_date' => now()->addDays(7),
+                'due_date' => now()->addDays(rand(0, 7)),
             ]);
         $this->artisan(GenerateRecurringInvoices::class)
             ->assertExitCode(0);
 
         $this->assertEquals(2, Invoice::count());
+    }
+
+    #[Test]
+    public function it_does_not_generate_monthly_invoice_with_window_greater_than_7_days()
+    {
+        Invoice::factory()
+            ->create([
+                'is_recurring' => true,
+                'status' => 'paid',
+                'has_next' => false,
+                'recurring_frequency' => 'monthly',
+                'due_date' => now()->addDays(rand(8, 30)),
+            ]);
+        $this->artisan(GenerateRecurringInvoices::class)
+            ->assertExitCode(0);
+
+        $this->assertEquals(1, Invoice::count());
     }
 
     #[Test]
@@ -156,12 +173,29 @@ class GenerateRecurringInvoicesTest extends TestCase
                 'status' => 'paid',
                 'has_next' => false,
                 'recurring_frequency' => 'yearly',
-                'due_date' => now()->addDays(20),
+                'due_date' => now()->addDays(rand(0,20)),
             ]);
         $this->artisan(GenerateRecurringInvoices::class)
             ->assertExitCode(0);
 
         $this->assertEquals(2, Invoice::count());
+    }
+
+    #[Test]
+    public function it_does_not_generate_yearly_invoice_with_window_greater_than_20_days()
+    {
+        Invoice::factory()
+            ->create([
+                'is_recurring' => true,
+                'status' => 'paid',
+                'has_next' => false,
+                'recurring_frequency' => 'yearly',
+                'due_date' => now()->addDays(rand(21, 100)),
+            ]);
+        $this->artisan(GenerateRecurringInvoices::class)
+            ->assertExitCode(0);
+
+        $this->assertEquals(1, Invoice::count());
     }
 
 
