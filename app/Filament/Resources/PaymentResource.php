@@ -33,7 +33,8 @@ class PaymentResource extends Resource
                     ->numeric()
                     ->minValue(0)
                     ->prefix('₵'),
-                Forms\Components\DateTimePicker::make('payment_date')
+                Forms\Components\DateTimePicker::make('created_at')
+                    ->label('Date')
                     ->required()
                     ->default(now()),
                 Forms\Components\Select::make('payment_method')
@@ -72,7 +73,8 @@ class PaymentResource extends Resource
                 Tables\Columns\TextColumn::make('amount')
                     ->money('GHS')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('payment_date')
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Date')
                     ->dateTime()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('payment_method')
@@ -81,16 +83,12 @@ class PaymentResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'pending' => 'warning',
                         'completed' => 'success',
                         'failed' => 'danger',
                         'refunded' => 'info',
                     }),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
