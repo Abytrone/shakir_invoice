@@ -19,7 +19,7 @@ class InvoiceFactory extends Factory
             'due_date' => Carbon::now(),
             'tax_rate' => $this->faker->randomFloat(),
             'discount_rate' => $this->faker->randomFloat(),
-            'status' => $this->faker->word(),
+            'status' => 'draft',
             'notes' => $this->faker->word(),
             'terms' => $this->faker->word(),
             'is_recurring' => $this->faker->boolean(),

@@ -128,7 +128,7 @@ class Invoice extends Model
 
     public function isOverdue(): bool
     {
-        return $this->due_date < Carbon::today();
+        return $this->due_date->isBefore(Carbon::today());
     }
 
     public function isDraft(): bool
@@ -143,7 +143,8 @@ class Invoice extends Model
 
     public function isPartial(): bool
     {
-        return $this->payments->sum('amount') > 0 && $this->balance > 0;
+        $amountPaid = $this->payments->sum('amount');
+        return $amountPaid > 0 && $amountPaid < $this->total;
     }
 
     protected function amountPaid(): Attribute

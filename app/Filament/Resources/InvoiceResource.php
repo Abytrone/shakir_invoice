@@ -325,7 +325,7 @@ class InvoiceResource extends Resource
                     ->numeric(),
 
                 Tables\Columns\TextColumn::make('amount_paid')
-                    ->label('Total (GHS)')
+                    ->label('Paid Amount (GHS)')
                     ->sortable()
                     ->numeric(),
 
