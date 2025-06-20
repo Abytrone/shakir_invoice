@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\InvoicePaid;
+use App\Mail\InvoiceSent;
 use App\Models\Invoice;
 use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class PaymentController extends Controller
 {
@@ -96,12 +99,11 @@ class PaymentController extends Controller
             $invoice->update(['status' => 'paid']);
         }
 
-        // in case we'll allow partial payments in the future
-//        if ($invoice->isPartial()) {
-//            $invoice->update(['status' => 'partial']);
-//        }
+        if ($invoice->isPartial()) {
+            $invoice->update(['status' => 'partial']);
+        }
 
-        //todo: notify client via email
+        Mail::to($invoice)->send(new InvoicePaid($invoice, $amount));
 
         return view('payments.success', [
             'invoice' => $invoice,
