@@ -90,7 +90,7 @@ class PaymentController extends Controller
             ->firstOrCreate(
                 ['reference_number' => $ref], [
                     'amount' => $amount,
-                    'note' => '...',
+                    'notes' => '...',
                     'payment_method' => $channel,
                 ]);
 
