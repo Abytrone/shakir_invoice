@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Constants\InvoiceStatus;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -35,7 +36,8 @@ class Invoice extends Model
 
     public function markAsOverdue(): void
     {
-        $this->update(['status' => 'overdue']);
+        if ($this->isOverdue() && $this->status != InvoiceStatus::OVERDUE)
+            $this->update(['status' => 'overdue']);
     }
 
     public function markAsSent(): void

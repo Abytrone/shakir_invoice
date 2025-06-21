@@ -15,3 +15,9 @@ Schedule::command('invoice:recurring-invoice-reminder')
     ->at('00:00')
     ->appendOutputTo(storage_path('logs/recurring-invoice-reminder.log'));
 
+
+Schedule::command('invoice:update-invoice-over-due-status')
+    ->daily()
+    ->at('00:00')
+    ->appendOutputTo(storage_path('logs/update-invoice-over-due-status.log'));
+

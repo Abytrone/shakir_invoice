@@ -64,14 +64,14 @@ class RecurringInvoiceReminderTest extends TestCase
 
         // Assert emails were sent for the correct invoices
         foreach ($invoices as $invoice) {
-            Mail::assertSent(InvoiceReminderSent::class, function ($mail) use ($invoice) {
+            Mail::assertQueued(InvoiceReminderSent::class, function ($mail) use ($invoice) {
                 return $mail->hasTo($invoice->client->email) &&
                     $mail->invoice->id === $invoice->id;
             });
         }
 
         // Assert total emails sent
-        Mail::assertSentCount(count($dueDates));
+        Mail::assertQueuedCount(count($dueDates));
     }
 
     public function test_it_does_not_send_emails_when_no_invoices_due_soon()
@@ -88,7 +88,7 @@ class RecurringInvoiceReminderTest extends TestCase
 
         $this->artisan('invoice:recurring-invoice-reminder')->assertExitCode(0);
 
-        Mail::assertNothingSent();
+        Mail::assertNothingQueued();
     }
 
 
