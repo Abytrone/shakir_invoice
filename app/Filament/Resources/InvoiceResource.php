@@ -8,13 +8,12 @@ use App\Models\Invoice;
 use App\Models\Product;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Forms\Set;
 use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -52,7 +51,7 @@ class InvoiceResource extends Resource
                             ->default(now()->addDays(30))
                             ->label('Due Date')
                             ->helperText('The date when the invoice payment is due')
-                            ->minDate(fn(callable $get) => $get('issue_date')),
+                            ->minDate(fn (callable $get) => $get('issue_date')),
 
                         Forms\Components\Select::make('status')
                             ->options([
@@ -87,12 +86,11 @@ class InvoiceResource extends Resource
                                             ->live()
                                             ->disableOptionWhen(function ($value, $state, Get $get) {
                                                 return collect($get('../*.product_id'))
-                                                    ->reject(fn($id) => $id == $state)
+                                                    ->reject(fn ($id) => $id == $state)
                                                     ->filter()
                                                     ->contains($value);
                                             })
                                             ->columnSpan(1),
-
 
                                         Forms\Components\TextInput::make(name: 'quantity')
                                             ->integer()
@@ -228,8 +226,8 @@ class InvoiceResource extends Resource
                                 'monthly' => 'Monthly',
                                 'yearly' => 'Yearly',
                             ])
-                            ->visible(fn(Get $get) => $get('is_recurring'))
-                            ->required(fn(Get $get) => $get('is_recurring'))
+                            ->visible(fn (Get $get) => $get('is_recurring'))
+                            ->required(fn (Get $get) => $get('is_recurring'))
                             ->label('Frequency')
                             ->helperText('How often should the invoice be generated'),
 
@@ -239,8 +237,9 @@ class InvoiceResource extends Resource
 
     protected static function updateSingleProductTotals(Product $product, $quantity): array
     {
-        $unitPrice = (float)($product->unit_price ?? 0);
+        $unitPrice = (float) ($product->unit_price ?? 0);
         $subtotal = $quantity * $unitPrice;
+
         return [
             'subtotal' => $subtotal,
         ];
@@ -249,19 +248,17 @@ class InvoiceResource extends Resource
     protected static function updateTotals(Get $get, Set $set): void
     {
         $selectedProducts = collect($get('items'))
-            ->filter(fn($item) => !empty($item['product_id'])
-                && !empty($item['quantity']));
+            ->filter(fn ($item) => ! empty($item['product_id'])
+                && ! empty($item['quantity']));
 
         $subtotal = 0;
 
         $products = Product::query()
             ->find($selectedProducts->pluck('product_id'));
 
-
         foreach ($products as $item) {
             $qty = $selectedProducts->pluck('quantity', 'product_id');
             $singleProductTotals = self::updateSingleProductTotals($item, $qty[$item->id]);
-
 
             $subtotal += $singleProductTotals['subtotal'];
         }
@@ -269,7 +266,6 @@ class InvoiceResource extends Resource
         $taxAmount = $subtotal * (($get('tax_rate') ?? 0) / 100);
 
         $discountAmount = $subtotal * (($get('discount_rate') ?? 0) / 100);
-
 
         $grandTotal = $subtotal + $taxAmount - $discountAmount;
         Log::info('', [round($subtotal, 2), round($grandTotal, 2)]);
@@ -281,9 +277,6 @@ class InvoiceResource extends Resource
 
     }
 
-    /**
-     * @return \Closure
-     */
     public static function setProductPricingDetails(): \Closure
     {
         return function ($state, Set $set, Get $get) {
@@ -331,7 +324,7 @@ class InvoiceResource extends Resource
 
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
-                    ->color(fn(string $state): string => match ($state) {
+                    ->color(fn (string $state): string => match ($state) {
                         'draft' => 'gray',
                         'sent' => 'info',
                         'paid' => 'success',
@@ -356,7 +349,7 @@ class InvoiceResource extends Resource
                         'partial' => 'Partial',
                     ]),
                 Tables\Filters\Filter::make('is_recurring')
-                    ->query(fn(Builder $query): Builder => $query->where('is_recurring', true)),
+                    ->query(fn (Builder $query): Builder => $query->where('is_recurring', true)),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
@@ -365,16 +358,16 @@ class InvoiceResource extends Resource
 
                     Tables\Actions\Action::make('print')
                         ->icon('heroicon-o-printer')
-                        ->url(fn(Invoice $record): string => route('invoices.print', $record))
+                        ->url(fn (Invoice $record): string => route('invoices.print', $record))
                         ->openUrlInNewTab(),
 
                     Tables\Actions\Action::make('download')
                         ->icon('heroicon-o-arrow-down-tray')
-                        ->url(fn(Invoice $record): string => route('invoices.download', $record))
+                        ->url(fn (Invoice $record): string => route('invoices.download', $record))
                         ->openUrlInNewTab(),
 
                     Tables\Actions\Action::make('send')
-                        ->visible(fn(Invoice $record) => $record->status == 'draft')
+                        ->visible(fn (Invoice $record) => $record->status == 'draft')
                         ->icon('heroicon-o-paper-airplane')
                         ->action(function (Invoice $record) {
                             $record->update(['status' => 'sent']);
@@ -384,9 +377,9 @@ class InvoiceResource extends Resource
                         ->requiresConfirmation(),
 
                     Tables\Actions\EditAction::make(),
-//                        ->visible(fn(Invoice $record) => $record->status == 'draft'),
-                    Tables\Actions\DeleteAction::make()
-//                        ->visible(fn(Invoice $record) => $record->status == 'draft'),
+                    //                        ->visible(fn(Invoice $record) => $record->status == 'draft'),
+                    Tables\Actions\DeleteAction::make(),
+                    //                        ->visible(fn(Invoice $record) => $record->status == 'draft'),
                 ]),
             ])
             ->bulkActions([

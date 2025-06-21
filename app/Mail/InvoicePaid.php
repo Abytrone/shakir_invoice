@@ -4,7 +4,6 @@ namespace App\Mail;
 
 use App\Models\Invoice;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -15,12 +14,11 @@ class InvoicePaid extends Mailable
     use Queueable, SerializesModels;
 
     private Invoice $invoice;
+
     private float $amount;
 
     /**
      * Create a new message instance.
-     * @param Invoice $invoice
-     * @param float $amount
      */
     public function __construct(Invoice $invoice, float $amount)
     {

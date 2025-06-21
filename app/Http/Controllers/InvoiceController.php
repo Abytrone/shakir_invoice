@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\InvoiceMail;
 use App\Models\Invoice;
-use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Mail;
-use App\Mail\InvoiceMail;
 
 class InvoiceController extends Controller
 {
@@ -17,6 +16,7 @@ class InvoiceController extends Controller
             'client' => $invoice->client,
             'items' => $invoice->items,
         ]);
+
         return $pdf = PDF::loadView('invoices.print', [
             'invoice' => $invoice,
             'client' => $invoice->client,

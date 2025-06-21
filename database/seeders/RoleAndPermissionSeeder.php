@@ -3,8 +3,8 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class RoleAndPermissionSeeder extends Seeder
 {
@@ -59,30 +59,30 @@ class RoleAndPermissionSeeder extends Seeder
 
         // Assign permissions to roles
         $superAdmin->givePermissionTo($allPermissions);
-        
-        $admin->givePermissionTo(array_filter($allPermissions, function($permission) {
-            return !str_contains($permission->name, '_role') && !str_contains($permission->name, '_user');
+
+        $admin->givePermissionTo(array_filter($allPermissions, function ($permission) {
+            return ! str_contains($permission->name, '_role') && ! str_contains($permission->name, '_user');
         }));
 
-        $manager->givePermissionTo(array_filter($allPermissions, function($permission) {
-            return !str_contains($permission->name, '_role') && 
-                   !str_contains($permission->name, '_user') &&
-                   !str_contains($permission->name, 'delete_any_') &&
-                   !str_contains($permission->name, 'force_delete_');
+        $manager->givePermissionTo(array_filter($allPermissions, function ($permission) {
+            return ! str_contains($permission->name, '_role') &&
+                   ! str_contains($permission->name, '_user') &&
+                   ! str_contains($permission->name, 'delete_any_') &&
+                   ! str_contains($permission->name, 'force_delete_');
         }));
 
         $accountant->givePermissionTo([
             'view_any_invoice', 'view_invoice', 'create_invoice', 'update_invoice', 'send_invoice', 'download_invoice',
             'view_any_quote', 'view_quote', 'create_quote', 'update_quote', 'send_quote', 'download_quote',
             'view_any_client', 'view_client', 'create_client', 'update_client',
-            'view_any_product', 'view_product'
+            'view_any_product', 'view_product',
         ]);
 
         $user->givePermissionTo([
             'view_any_invoice', 'view_invoice', 'download_invoice',
             'view_any_quote', 'view_quote', 'download_quote',
             'view_any_client', 'view_client',
-            'view_any_product', 'view_product'
+            'view_any_product', 'view_product',
         ]);
     }
 }

@@ -3,13 +3,13 @@
 namespace App\Models;
 
 use App\Constants\InvoiceStatus;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Carbon\Carbon;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Invoice extends Model
 {
@@ -27,37 +27,40 @@ class Invoice extends Model
         'has_next' => 'boolean',
     ];
 
-
     public function markAsPaid(): void
     {
-        if ($this->status != 'paid')
+        if ($this->status != 'paid') {
             $this->update(['status' => 'paid']);
+        }
     }
 
     public function markAsOverdue(): void
     {
-        if ($this->isOverdue() && $this->status != InvoiceStatus::OVERDUE)
+        if ($this->isOverdue() && $this->status != InvoiceStatus::OVERDUE) {
             $this->update(['status' => 'overdue']);
+        }
     }
 
     public function markAsSent(): void
     {
-        if ($this->status != 'sent')
+        if ($this->status != 'sent') {
             $this->update(['status' => 'sent']);
+        }
     }
 
     public function markAsDraft(): void
     {
-        if ($this->status != 'draft')
+        if ($this->status != 'draft') {
             $this->update(['status' => 'draft']);
+        }
     }
 
     public function markAsCancelled(): void
     {
-        if ($this->status != 'cancelled')
+        if ($this->status != 'cancelled') {
             $this->update(['status' => 'cancelled']);
+        }
     }
-
 
     protected function subtotal(): Attribute
     {
@@ -65,7 +68,7 @@ class Invoice extends Model
             get: function ($value, array $attributes) {
                 return $this->items->sum('total');
             },
-            set: fn($value) => $value,
+            set: fn ($value) => $value,
         );
     }
 
@@ -75,7 +78,7 @@ class Invoice extends Model
             get: function ($value, array $attributes) {
                 return $this->items->sum('total') * ($attributes['discount_rate'] / 100);
             },
-            set: fn($value) => $value,
+            set: fn ($value) => $value,
         );
     }
 
@@ -85,7 +88,7 @@ class Invoice extends Model
             get: function ($value, array $attributes) {
                 return $this->items->sum('total') * ($attributes['tax_rate'] / 100);
             },
-            set: fn($value) => $value,
+            set: fn ($value) => $value,
         );
     }
 
@@ -103,7 +106,7 @@ class Invoice extends Model
 
                 return round($result, 2);
             },
-            set: fn($value) => $value,
+            set: fn ($value) => $value,
         );
     }
 
@@ -121,7 +124,6 @@ class Invoice extends Model
     {
         return $this->hasMany(Payment::class);
     }
-
 
     public function isSent(): bool
     {
@@ -146,33 +148,30 @@ class Invoice extends Model
     public function isPartial(): bool
     {
         $amountPaid = $this->payments->sum('amount');
+
         return $amountPaid > 0 && $amountPaid < $this->total;
     }
 
     protected function amountPaid(): Attribute
     {
         return Attribute::make(
-            get: fn($value, array $attributes) => $this->payments->sum('amount'),
-            set: fn($value) => $value,
+            get: fn ($value, array $attributes) => $this->payments->sum('amount'),
+            set: fn ($value) => $value,
         );
     }
 
     protected function amountToPay(): Attribute
     {
         return Attribute::make(
-            get: fn($value, array $attributes) => round($this->total - $this->payments->sum('amount'), 2),
-            set: fn($value) => $value,
+            get: fn ($value, array $attributes) => round($this->total - $this->payments->sum('amount'), 2),
+            set: fn ($value) => $value,
         );
     }
 
-    /**
-     * @param $invoice
-     * @return void
-     */
     public static function setRecurringEndDate($invoice): void
     {
         if ($invoice->is_recurring) {
-            $invoice->next_recurring_date = $invoice->due_date;//->addDays($days);
+            $invoice->next_recurring_date = $invoice->due_date; // ->addDays($days);
         }
     }
 
@@ -183,7 +182,7 @@ class Invoice extends Model
         static::creating(function ($invoice) {
             $latestInvoice = static::withTrashed()->orderByDesc('id')->first();
             $nextNumber = $latestInvoice ? intval(substr($latestInvoice->invoice_number, 3)) + 1 : 1;
-            $invoice->invoice_number = 'INV' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
+            $invoice->invoice_number = 'INV'.str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
 
             self::setRecurringEndDate($invoice);
         });
@@ -193,5 +192,4 @@ class Invoice extends Model
         });
 
     }
-
 }

@@ -5,7 +5,6 @@ namespace Tests\Feature\Models;
 use App\Constants\InvoiceStatus;
 use App\Models\Invoice;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
 
 class InvoiceTest extends TestCase
@@ -24,12 +23,8 @@ class InvoiceTest extends TestCase
             'status' => InvoiceStatus::SENT,
         ]);
 
-
         $this->assertTrue($invoice1->isOverdue());
-        $this->assertTrue(!$invoice2->isOverdue());
-
+        $this->assertTrue(! $invoice2->isOverdue());
 
     }
-
-
 }

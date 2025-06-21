@@ -48,7 +48,6 @@ class RecurringInvoiceReminder extends Command
             Mail::to($invoice->client->email)
                 ->send(new InvoiceReminderSent($invoice, $daysBeforeDueDate));
 
-
         }
     }
 }

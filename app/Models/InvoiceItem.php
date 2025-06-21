@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Casts\Attribute;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class InvoiceItem extends Model
@@ -27,11 +27,10 @@ class InvoiceItem extends Model
     protected function total(): Attribute
     {
         return Attribute::make(
-            get: fn($value, array $attributes) => $attributes['quantity'] * $attributes['unit_price'],
-            set: fn($value) => $value,
+            get: fn ($value, array $attributes) => $attributes['quantity'] * $attributes['unit_price'],
+            set: fn ($value) => $value,
         );
     }
-
 
     public function invoice(): BelongsTo
     {
@@ -42,5 +41,4 @@ class InvoiceItem extends Model
     {
         return $this->belongsTo(Product::class);
     }
-
 }

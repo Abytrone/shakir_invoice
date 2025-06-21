@@ -17,7 +17,7 @@ class CreateInvoice extends CreateRecord
     protected function afterCreate(): void
     {
         $this->record->load('client');
-        if($this->record->isSent()) {
+        if ($this->record->isSent()) {
             Mail::to($this->record->client->email)
                 ->send(new InvoiceSent($this->record));
         }

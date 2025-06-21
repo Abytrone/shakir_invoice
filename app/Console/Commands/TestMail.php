@@ -2,13 +2,8 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Bus\Queueable;
 use Illuminate\Console\Command;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Mail;
-use Symfony\Component\Mime\Email;
-use Illuminate\Mail\Mailable;
 
 class TestMail extends Command
 {
@@ -26,10 +21,9 @@ class TestMail extends Command
      */
     protected $description = 'Command description';
 
-
     public function handle(): void
     {
         Mail::to('mahmudsheikh25@gmail.com')
-            ->queue(new \App\Mail\TestMail());
+            ->queue(new \App\Mail\TestMail);
     }
 }

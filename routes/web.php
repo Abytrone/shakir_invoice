@@ -1,8 +1,8 @@
 <?php
 
+use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\PaymentController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\InvoiceController;
 
 // Route::get('/', function () {
 //     return view('welcome');
@@ -23,18 +23,17 @@ Route::get('preview-invoice/{invoice}', function () {
     return (new \App\Mail\InvoiceSent(\App\Models\Invoice::with('client')->first()))->render();
 })->name('preview-invoice');
 
-
 Route::get('/test-mail', function () {
 
     Mail::to('mahmudsheikh25@gmail.com
         ->send(new \App\Mail\TestMail())');
 })->name('deploy-fresh');
 
-
 Route::get('/cache-clear', function () {
     \Artisan::call('config:clear');
     \Artisan::call('cache:clear');
     \Artisan::call('view:clear');
     \Artisan::call('route:clear');
+
     return 'Cache cleared successfully!';
 })->name('cache-clear');

@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Mail;
 class GenerateRecurringInvoices extends Command
 {
     protected $signature = 'invoices:generate-recurring';
+
     protected $description = 'Generate recurring invoices based on their frequency and schedule';
 
     public function handle(): void
@@ -42,9 +43,9 @@ class GenerateRecurringInvoices extends Command
                         });
                 })
                 ->get();
-//            info($recurringInvoices);
-            //todo: if necessary add condition to get is the recurring is stopped
-//            dd();
+            //            info($recurringInvoices);
+            // todo: if necessary add condition to get is the recurring is stopped
+            //            dd();
             foreach ($recurringInvoices as $invoice) {
                 $this->generateNextInvoice($invoice);
             }
@@ -53,15 +54,15 @@ class GenerateRecurringInvoices extends Command
             $this->info('Recurring invoice generation completed successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Failed to generate recurring invoices: ' . $e->getMessage());
-            $this->error('Failed to generate recurring invoices: ' . $e->getMessage());
+            Log::error('Failed to generate recurring invoices: '.$e->getMessage());
+            $this->error('Failed to generate recurring invoices: '.$e->getMessage());
         }
     }
-
 
     public function calculateNextDate(string $lastDate, string $frequency): Carbon
     {
         $date = Carbon::parse($lastDate);
+
         return match ($frequency) {
             'yearly' => $date->addYears(),
             default => $date->addMonths(),
@@ -85,7 +86,7 @@ class GenerateRecurringInvoices extends Command
         // Generate new invoice number
         $latestInvoice = Invoice::withTrashed()->latest()->first();
         $nextNumber = $latestInvoice ? intval(substr($latestInvoice->invoice_number, 3)) + 1 : 1;
-        $newInvoice->invoice_number = 'REC-' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
+        $newInvoice->invoice_number = 'REC-'.str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
 
         $newInvoice->save();
 

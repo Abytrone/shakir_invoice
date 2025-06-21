@@ -36,7 +36,7 @@ class UpdateInvoiceStatus extends Command
             } elseif ($invoice->due_date < now() && $invoice->status !== 'paid') {
                 $invoice->markAsOverdue();
                 $this->info("Invoice {$invoice->invoice_number} status updated to overdue.");
-            }elseif ($invoice->status === 'overdue' && $invoice->amount_paid >= $invoice->total) {
+            } elseif ($invoice->status === 'overdue' && $invoice->amount_paid >= $invoice->total) {
                 $invoice->markAsPaid();
                 $this->info("Invoice {$invoice->invoice_number} status updated to paid.");
             }

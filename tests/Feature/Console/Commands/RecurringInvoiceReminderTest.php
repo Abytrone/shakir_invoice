@@ -13,7 +13,6 @@ use Tests\TestCase;
 
 class RecurringInvoiceReminderTest extends TestCase
 {
-
     use RefreshDatabase;
 
     protected function tearDown(): void
@@ -21,7 +20,6 @@ class RecurringInvoiceReminderTest extends TestCase
         parent::tearDown();
         Carbon::setTestNow(); // Reset time
     }
-
 
     public function test_it_sends_reminders_for_invoices_due_soon()
     {
@@ -90,6 +88,4 @@ class RecurringInvoiceReminderTest extends TestCase
 
         Mail::assertNothingQueued();
     }
-
-
 }

@@ -82,7 +82,8 @@ class GenerateRecurringInvoicesTest extends TestCase
         $this->assertEquals(1, Invoice::count());
     }
 
-    #[Test] public function it_does_not_generate_invoices_for_unpaid_invoices()
+    #[Test]
+    public function it_does_not_generate_invoices_for_unpaid_invoices()
     {
         Invoice::factory()
             ->create([
@@ -97,7 +98,8 @@ class GenerateRecurringInvoicesTest extends TestCase
         $this->assertEquals(1, Invoice::count());
     }
 
-    #[Test] public function it_does_not_generate_invoices_for_invoices_that_already_have_next()
+    #[Test]
+    public function it_does_not_generate_invoices_for_invoices_that_already_have_next()
     {
         Invoice::factory()
             ->create([
@@ -173,7 +175,7 @@ class GenerateRecurringInvoicesTest extends TestCase
                 'status' => 'paid',
                 'has_next' => false,
                 'recurring_frequency' => 'yearly',
-                'due_date' => now()->addDays(rand(0,20)),
+                'due_date' => now()->addDays(rand(0, 20)),
             ]);
         $this->artisan(GenerateRecurringInvoices::class)
             ->assertExitCode(0);
@@ -198,8 +200,8 @@ class GenerateRecurringInvoicesTest extends TestCase
         $this->assertEquals(1, Invoice::count());
     }
 
-
-    #[Test] public function it_generates_correct_invoice_numbers()
+    #[Test]
+    public function it_generates_correct_invoice_numbers()
     {
         // Create existing invoice to a test sequence
         Invoice::factory()->create();
@@ -218,13 +220,14 @@ class GenerateRecurringInvoicesTest extends TestCase
         $this->assertEquals('INV000002', $newInvoice->invoice_number);
     }
 
-    #[Test] public function it_does_not_generate_invoices_when_recurring_is_stopped()
+    #[Test]
+    public function it_does_not_generate_invoices_when_recurring_is_stopped()
     {
         $invoice = Invoice::factory()->create([
             'is_recurring' => true,
             'status' => 'paid',
             'recurring_end_date' => now()->subDay(), // Ended yesterday
-            'due_date' => now()
+            'due_date' => now(),
         ]);
 
         $this->artisan(GenerateRecurringInvoices::class);

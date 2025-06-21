@@ -12,6 +12,7 @@ class InvoiceMail extends Mailable
     use Queueable, SerializesModels;
 
     public $invoice;
+
     private $pdfContent;
 
     public function __construct(Invoice $invoice, $pdfContent)

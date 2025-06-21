@@ -2,15 +2,16 @@
 
 namespace Tests\Feature\Console\Commands;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 use App\Models\Invoice;
-use Illuminate\Support\Facades\Date;
 use Carbon\Carbon;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Date;
+use Tests\TestCase;
 
 class MarkOverdueInvoicesCommandTest extends TestCase
 {
     use RefreshDatabase;
+
     public function test_it_marks_overdue_invoices()
     {
         // Freeze time for predictable tests
@@ -57,8 +58,6 @@ class MarkOverdueInvoicesCommandTest extends TestCase
         $this->artisan('invoice:update-invoice-over-due-status')
             ->assertExitCode(0);
     }
-
-
 
     protected function tearDown(): void
     {
