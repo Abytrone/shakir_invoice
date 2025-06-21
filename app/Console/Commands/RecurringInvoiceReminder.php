@@ -2,7 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Mail\InvoiceReminderSent;
+use App\Models\Invoice;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Mail;
 
 class RecurringInvoiceReminder extends Command
 {
@@ -11,7 +14,7 @@ class RecurringInvoiceReminder extends Command
      *
      * @var string
      */
-    protected $signature = 'app:recurring-invoice-reminder';
+    protected $signature = 'invoice:recurring-invoice-reminder';
 
     /**
      * The console command description.
@@ -23,8 +26,29 @@ class RecurringInvoiceReminder extends Command
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(): void
     {
-        //
+
+        $invoices = Invoice::query()
+            ->with(['client', 'items'])
+            ->whereIn('due_date', [
+                today()->addDays(15),
+                today()->addDays(10),
+                today()->addDays(5),
+                today()])
+            ->where(function ($query) {
+                $query->where('due_reminder_date', '!=', today())
+                    ->orWhereNull('due_reminder_date');
+            })
+            ->get();
+
+        foreach ($invoices as $invoice) {
+            $daysBeforeDueDate = $invoice->due_date->diffInDays(today());
+            $invoice->update(['due_reminder_date' => now()]);
+            Mail::to($invoice->client->email)
+                ->send(new InvoiceReminderSent($invoice, $daysBeforeDueDate));
+
+
+        }
     }
 }

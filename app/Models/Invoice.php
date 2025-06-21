@@ -179,7 +179,7 @@ class Invoice extends Model
         parent::boot();
 
         static::creating(function ($invoice) {
-            $latestInvoice = static::withTrashed()->latest()->first();
+            $latestInvoice = static::withTrashed()->orderByDesc('id')->first();
             $nextNumber = $latestInvoice ? intval(substr($latestInvoice->invoice_number, 3)) + 1 : 1;
             $invoice->invoice_number = 'INV' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
 

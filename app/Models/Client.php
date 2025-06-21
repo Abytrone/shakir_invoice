@@ -11,19 +11,7 @@ class Client extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = [
-        'name',
-        'email',
-        'phone',
-        'company_name',
-        'tax_number',
-        'address',
-        'city',
-        'state',
-        'country',
-        'postal_code',
-        'notes',
-    ];
+    protected $guarded = [];
 
     public function quotes(): HasMany
     {

@@ -10,6 +10,8 @@ Schedule::command('invoices:update-invoice-status')
     ->at('00:00')
     ->appendOutputTo(storage_path('logs/update-invoice-status.log'));
 
-//Schedule::command('app:test-mail')
-//    ->everyFiveMinutes()
-//    ->appendOutputTo(storage_path('logs/test-mail.log'));
+Schedule::command('invoice:recurring-invoice-reminder')
+    ->daily()
+    ->at('00:00')
+    ->appendOutputTo(storage_path('logs/recurring-invoice-reminder.log'));
+
