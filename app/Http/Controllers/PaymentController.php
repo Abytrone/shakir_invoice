@@ -60,6 +60,7 @@ class PaymentController extends Controller
     public function process(Request $request)
     {
 
+        info('Processing payment for reference: '.$request->reference);
         $ref = $request->reference;
 
         $response = Http::withHeaders(['Authorization' => 'Bearer '.config('services.paystack.test_key')])
@@ -103,6 +104,7 @@ class PaymentController extends Controller
 
         Mail::to($invoice)->send(new InvoicePaid($invoice, $amount));
 
+        info('Payment processed successfully for invoice: '.$invoice->invoice_number);
         return view('payments.success', [
             'invoice' => $invoice,
             'message' => 'Invoice payment has been processed successfully.',
