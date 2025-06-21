@@ -13,18 +13,12 @@ class InvoicePaid extends Mailable
 {
     use Queueable, SerializesModels;
 
-    private Invoice $invoice;
-
-    private float $amount;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(Invoice $invoice, float $amount)
+    public function __construct(public Invoice $invoice, public float $amount)
     {
-        //
-        $this->invoice = $invoice;
-        $this->amount = $amount;
     }
 
     /**
