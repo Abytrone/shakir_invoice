@@ -37,3 +37,9 @@ Route::get('/cache-clear', function () {
 
     return 'Cache cleared successfully!';
 })->name('cache-clear');
+
+
+Route::get('/migrate-force', function () {
+    \Artisan::call('migrate', ['--force' => true]);
+    return 'migration run successfully!';
+})->name('cache-clear');
