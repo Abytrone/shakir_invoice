@@ -26,7 +26,7 @@ Route::get('preview-invoice/{invoice}', function () {
 Route::get('/test-mail', function () {
 
     Mail::to('mahmudsheikh25@gmail.com')
-        ->send(new \App\Mail\TestMail());
+        ->queue(new \App\Mail\TestMail());
 })->name('deploy-fresh');
 
 Route::get('/cache-clear', function () {
