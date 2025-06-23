@@ -9,6 +9,9 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Tables\Filters\Filter;
+use Filament\Forms\Components\DatePicker;
+use Illuminate\Database\Eloquent\Builder;
 
 class PaymentResource extends Resource
 {
@@ -64,6 +67,14 @@ class PaymentResource extends Resource
 
     public static function table(Table $table): Table
     {
+        $paymentLabels = [
+            'cash' => 'Cash',
+            'bank_transfer' => 'Bank Transfer',
+            'credit_card' => 'Credit Card',
+            'mobile_money' => 'Mobile Money',
+            'other' => 'Other',
+        ];
+
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('invoice.invoice_number')
@@ -74,9 +85,13 @@ class PaymentResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Date')
-                    ->dateTime()
+                    ->date('M d, Y h:i A')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('payment_method')
+                    ->label('Payment Method')
+                    ->badge()
+                    ->formatStateUsing(fn (string $state) => $paymentLabels[$state])
+                    ->sortable()
                     ->searchable(),
                 Tables\Columns\TextColumn::make('reference_number')
                     ->searchable(),
@@ -90,6 +105,16 @@ class PaymentResource extends Resource
                     }),
             ])
             ->filters([
+                Filter::make('created_at')
+                ->form([
+                    DatePicker::make('from')->label('From date'),
+                    DatePicker::make('until')->label('To date'),
+                ])
+                ->query(function (Builder $query, array $data): Builder {
+                    return $query
+                        ->when($data['from'], fn ($q) => $q->whereDate('created_at', '>=', $data['from']))
+                        ->when($data['until'], fn ($q) => $q->whereDate('created_at', '<=', $data['until']));
+                }),
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
                         'pending' => 'Pending',

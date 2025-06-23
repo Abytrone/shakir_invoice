@@ -3,146 +3,299 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice {{ $invoice->invoice_number }}</title>
+    <title>Invoice #{{ $invoice->invoice_number }} - Shakir Dynamics</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
+        * {
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            color: #374151;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .header {
-            text-align: center;
-            margin-bottom: 30px;
+            position: fixed;
+            top: 20;
+            left: 50;
+            right: 50;
+            height: 40mm;
         }
 
-        .invoice-details {
-            margin-bottom: 30px;
+        .footer {
+            position: fixed;
+            bottom: 5mm;
+            left: 0;
+            right: 0;
+            height: 30mm;
         }
 
-        .client-details {
-            margin-bottom: 30px;
+        .invoice-content {
+            padding-top: 35mm;  /* slightly more than header height */
+            padding-bottom: 35mm; /* slightly more than footer height */
+            padding-left: 50;
+            padding-right: 50;
+            box-sizing: border-box;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            color: #2563eb;
+            font-weight: bold;
+            margin-top: 2rem;
+        }
+
+        .invoice-meta {
+            text-align: right;
+            margin-top: 1.5rem;
+            color: #4b5563;
+        }
+
+        .invoice-meta h1 {
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
+
+        .invoice-meta p {
+            font-size: 0.875rem;
+        }
+
+        .bill-to {
+            margin-top: 2rem;
+            color: #4b5563;
+        }
+
+        .bill-to h2 {
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .bill-to p {
+            font-size: 0.9rem;
+            line-height: 1.4;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 30px;
+            margin-top: 2rem;
+            font-size: 0.9rem;
+            table-layout: fixed;
+            word-wrap: break-word;
         }
 
         th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
+            border: 1px solid #e5e7eb;
+            padding: 0.6rem 1rem;
             text-align: left;
         }
 
         th {
-            background-color: #f5f5f5;
+            background-color: #F2F6FFFF;
+            font-weight: 700;
         }
 
         .totals {
-            float: right;
-            width: 300px;
+            margin-top: 2rem;
+            width: 50%;
+            margin-left: auto;
+            font-size: 0.9rem;
         }
 
-        .totals table {
-            margin-bottom: 0;
+        .totals td {
+            padding: 0.6rem 1rem;
         }
 
-        .footer {
-            margin-top: 50px;
+        .totals .label {
+            font-weight: 700;
+            text-align: left;
+        }
+
+        .totals .value {
+            text-align: right;
+        }
+
+        .text-green {
+            color: #10b981;
+        }
+
+        .text-red {
+            color: #ef4444;
+        }
+
+        .footer-note {
             text-align: center;
-            font-size: 12px;
-            color: #666;
+            font-size: 0.85rem;
+            margin: 1rem 0;
+            color: #6b7280;
         }
+
+        @page {
+            margin: 40mm 10mm 30mm 10mm; /* top, right, bottom, left */
+            size: A4;
+        }
+
+        @media print {
+            body, .invoice-container {
+                box-shadow: none;
+                border-radius: 0;
+            }
+
+            .footer {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+            }
+        }
+
+        .w-full { width: 100%; }
+        .max-w-4xl { max-width: 56rem; }
+        .bg-white { background-color: white; }
+        .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .rounded-lg { border-radius: 8px; }
+        .p-6 { padding: 1.5rem; }
+        .mx-auto { margin-left: auto; margin-right: auto; }
+        .my-10 { margin-top: 2.5rem; margin-bottom: 2.5rem; }
+        .flex-col { flex-direction: column; }
+
+        /* Text styles */
+        .text-sm { font-size: 0.875rem; }
+        .text-xl { font-size: 1.25rem; }
+        .text-5xl { font-size: 3rem; }
+        .font-bold { font-weight: 700; }
+        .font-semibold { font-weight: 400; }
+        .text-center { text-align: center; }
+        .text-left { text-align: left; }
+        .text-right { text-align: right; }
+
+        /* Colors */
+        .text-blue-600 { color: #2563eb; }
+        .text-gray-700 { color: #374151; }
+        .text-green-500 { color: #10b981; }
+        .text-red-500 { color: #ef4444; }
+        .text-yellow-500 { color: #f59e0b; }
+        .text-gray-500 { color: #6b7280; }
+        .bg-gray-100 { background-color: #f3f4f6; }
+        .bg-white { background-color: white; }
+        .border-gray-200 { border-color: #e5e7eb; }
+
+        /* Spacing */
+        .px-10 { padding-left: 2.5rem; padding-right: 2.5rem; }
+        .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+        .px-4 { padding-left: 1rem; padding-right: 1rem; }
+        .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+        .mb-6 { margin-bottom: 1.5rem; }
+        .mt-6 { margin-top: 1.5rem; }
+        .my-6 { margin-top: 1.5rem; margin-bottom: 1.5rem; }
+
+        /* Layout */
+        .flex { display: flex; }
+        .items-end { align-items: flex-end; }
+        .justify-end { justify-content: flex-end; }
+        .justify-center { justify-content: center; }
+        .items-center { align-items: center; }
+        .gap-2 { gap: 0.5rem; }
+
+        /* Table styles */
+        .min-w-full { min-width: 100%; }
+        .border { border-width: 1px; border-style: solid; }
+        .border-b { border-bottom-width: 1px; border-bottom-style: solid; }
     </style>
 </head>
 <body>
-<div class="header">
-    <h1>INVOICE</h1>
-    <p>Invoice Number: {{ $invoice->invoice_number }}</p>
-</div>
-
-<div class="invoice-details">
-    <p><strong>Issue Date:</strong> {{ $invoice->issue_date->format('M d, Y') }}</p>
-    <p><strong>Due Date:</strong> {{ $invoice->due_date->format('M d, Y') }}</p>
-    <p><strong>Status:</strong> {{ ucfirst($invoice->status) }}</p>
-</div>
-
-<div class="client-details">
-    <h3>Bill To:</h3>
-    <p><strong>{{ $client->company_name }}</strong></p>
-    <p>{{ $client->address }}</p>
-    <p>Phone: {{ $client->phone }}</p>
-    <p>Email: {{ $client->email }}</p>
-</div>
-
-<table>
-    <thead>
-    <tr>
-        <th>Name</th>
-        <th>Quantity</th>
-        <th>Unit Price</th>
-        <th>Total</th>
-    </tr>
-    </thead>
-    <tbody>
-    @foreach($items as $item)
-        <tr>
-            <td>{{ $item->product->name }}</td>
-            <td>{{ $item->quantity }}</td>
-            <td>GHS {{ number_format($item->unit_price, 2) }}</td>
-            <td>GHS {{ number_format($item->total, 2) }}</td>
-        </tr>
-    @endforeach
-    </tbody>
-</table>
-
-<div class="totals">
-    <table>
-        <tr>
-            <td><strong>Subtotal(GHS):</strong></td>
-            <td style="text-align: right;"> {{ number_format($invoice->subtotal, 2) }}</td>
-        </tr>
-        <tr>
-            <td><strong>Tax Rate(%):</strong></td>
-            <td style="text-align: right;">{{ number_format($invoice->tax_rate, 2) }} </td>
-        </tr>
-        <tr>
-            <td><strong>Discount(%):</strong></td>
-            <td style="text-align: right;">  {{ number_format($invoice->discount_rate, 2) }}</td>
-        </tr>
-        <tr>
-            <td><strong>Total(GHS):</strong></td>
-            <td style="text-align: right;">{{ number_format($invoice->total, 2) }}</td>
-        </tr>
-        <tr>
-            <td><strong>Amount Paid(GHS):</strong></td>
-            <td style="text-align: right;">{{ number_format($invoice->amount_paid, 2) }}</td>
-        </tr>
-        <tr>
-            <td><strong>Balance(GHS):</strong></td>
-            <td style="text-align: right;">{{ number_format($invoice->amount_to_pay, 2) }}</td>
-        </tr>
-    </table>
-</div>
-
-@if($invoice->notes)
-    <div class="notes">
-        <h3>Notes:</h3>
-        <p>{{ $invoice->notes }}</p>
+    <div class="header">
+        <img src="{{ public_path('images/letterhead_items_header.png') }}" alt="Header" style="width: 100%; height: auto;">
     </div>
-@endif
 
-@if($invoice->terms)
-    <div class="terms">
-        <h3>Terms & Conditions:</h3>
-        <p>{{ $invoice->terms }}</p>
+    <div class="footer">
+        <div class="footer-note">Thank you for your business!</div>
+        <img src="{{ public_path('images/letterhead_items_footer.png') }}" alt="Footer" style="width: 100%; height: auto;">
     </div>
-@endif
 
-<div class="footer">
-    <p>Thank you for your business!</p>
-</div>
+    <div class="invoice-content">
+        <div class="title">INVOICE</div>
+
+        <div class="invoice-meta">
+            <h1 style="padding-bottom: 20px;" >INVOICE #{{ $invoice->invoice_number }}</h1>
+            <p>Issue Date: {{ $invoice->issue_date->format('d-m-Y') }}</p>
+            <p>Due Date: {{ $invoice->due_date->format('d-m-Y') }}</p>
+            @if($invoice->is_recurring)
+                <p>Next Recurring: {{ $invoice->next_recurring_date }}</p>
+            @endif
+        </div>
+
+        @if($invoice->status == 'paid')
+            <p class="text-sm">PAID ON: {{ $invoice->payments->last()->created_at->format('d-m-Y') }}</p>
+            <p class="text-sm">STATUS: <span class="{{ $invoice->status == 'paid' ? 'text-green-500' : ($invoice->status == 'overdue' ? 'text-red-500' : ($invoice->status == 'draft' ? 'text-gray-500' : 'text-yellow-500')) }} font-bold">{{ ucfirst($invoice->status) }}</span></p>
+            <p class="text-sm">PAYMENT METHOD: {{ $invoice->payments->pluck('payment_method')->join(', ') }}</p>
+        @endif
+
+        <div class="bill-to">
+            <h2>Bill To:</h2>
+            <p>{{ $client->company_name }}</p>
+            <p>{{ $client->address }}</p>
+            <p>{{ $client->email }}</p>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th class="text-center">No.</th>
+                    <th class="text-center">Item</th>
+                    <th class="text-center">Qty</th>
+                    <th class="text-center">Price (GHC)</th>
+                    <th class="text-center">Total (GHC)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($invoice->items as $item)
+                    <tr>
+                        <td class="text-center" style="width: 10%;">{{ $loop->iteration }}</td>
+                        <td style="width: 40%;">{{ $item->product->name }}</td>
+                        <td class="text-center" style="width: 10%;">{{ $item->quantity }}</td>
+                        <td class="text-right">{{ number_format($item->unit_price, 2) }}</td>
+                        <td class="text-right">{{ number_format($item->total, 2) }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+
+        <table class="totals">
+            <tr>
+                <td class="label">Subtotal:</td>
+                <td class="value">GHC {{ number_format($invoice->subtotal, 2) }}</td>
+            </tr>
+            <tr>
+                <td class="label">Discount ({{ $invoice->discount_rate }}%):</td>
+                <td class="value">-GHC {{ number_format($invoice->discount_amount, 2) }}</td>
+            </tr>
+            <tr>
+                <td class="label">Tax ({{ $invoice->tax_rate }}%):</td>
+                <td class="value">GHC {{ number_format($invoice->tax_amount, 2) }}</td>
+            </tr>
+            <tr>
+                <td class="label">Total:</td>
+                <td class="value"><strong>GHC {{ number_format($invoice->total, 2) }}</strong></td>
+            </tr>
+            @if($invoice->status == 'paid')
+                <tr>
+                    <td class="label text-green">Amount Paid:</td>
+                    <td class="value text-green">GHC {{ number_format($invoice->amount_paid, 2) }}</td>
+                </tr>
+                <tr>
+                    <td class="label text-red">Balance Due:</td>
+                    <td class="value text-red">GHC {{ number_format($invoice->balance, 2) }}</td>
+                </tr>
+            @endif
+        </table>
+    </div>
 </body>
 </html>

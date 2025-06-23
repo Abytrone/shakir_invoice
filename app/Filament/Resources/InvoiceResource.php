@@ -268,7 +268,7 @@ class InvoiceResource extends Resource
         $discountAmount = $subtotal * (($get('discount_rate') ?? 0) / 100);
 
         $grandTotal = $subtotal + $taxAmount - $discountAmount;
-        Log::info('', [round($subtotal, 2), round($grandTotal, 2)]);
+        // Log::info('', [round($subtotal, 2), round($grandTotal, 2)]);
 
         $set('tax_amount', round($taxAmount, 2));
         $set('discount_amount', round($discountAmount, 2));
@@ -305,11 +305,13 @@ class InvoiceResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('issue_date')
-                    ->date()
+                    ->date('M d, Y h:i A')
+                    ->toggleable()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('due_date')
-                    ->date()
+                    ->date('M d, Y h:i A')
+                    ->toggleable()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('total')
@@ -337,7 +339,8 @@ class InvoiceResource extends Resource
                     ->label('Recurring'),
                 Tables\Columns\TextColumn::make('next_recurring_date')
                     ->label('Next Recurring')
-                    ->date(),
+                    ->toggleable()
+                    ->date('M d, Y h:i A'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')

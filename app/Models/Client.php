@@ -17,4 +17,16 @@ class Client extends Model
     {
         return $this->hasMany(Quote::class);
     }
+
+    public function payments(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
+    {
+        return $this->hasManyThrough(
+            \App\Models\Payment::class,
+            \App\Models\Invoice::class,
+            'client_id', // Foreign key on invoices table...
+            'invoice_id', // Foreign key on payments table...
+            'id', // Local key on clients table...
+            'id'  // Local key on invoices table...
+        );
+    }
 }
