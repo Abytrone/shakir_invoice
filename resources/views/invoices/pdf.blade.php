@@ -3,229 +3,299 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice {{ $invoice->invoice_number }}</title>
+    <title>Invoice #{{ $invoice->invoice_number }} - Shakir Dynamics</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: 'Helvetica', sans-serif;
-            line-height: 1.6;
-            color: #333;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            color: #374151;
             margin: 0;
-            padding: 40px;
-        }
-        .invoice-header {
+            padding: 0;
             display: flex;
-            justify-content: space-between;
-            margin-bottom: 40px;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 20px;
+            align-items: center;
+            justify-content: center;
         }
-        .invoice-header h1 {
-            color: #2d3748;
-            margin: 0;
-            font-size: 32px;
+
+        .header {
+            position: fixed;
+            top: 20;
+            left: 50;
+            right: 50;
+            height: 40mm;
         }
-        .invoice-header h2 {
-            color: #4a5568;
-            margin: 5px 0 0;
-            font-size: 24px;
+
+        .footer {
+            position: fixed;
+            bottom: 5mm;
+            left: 0;
+            right: 0;
+            height: 30mm;
         }
-        .company-info {
+
+        .invoice-content {
+            padding-top: 35mm;  /* slightly more than header height */
+            padding-bottom: 35mm; /* slightly more than footer height */
+            padding-left: 50;
+            padding-right: 50;
+            box-sizing: border-box;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            color: #2563eb;
+            font-weight: bold;
+            margin-top: 2rem;
+        }
+
+        .invoice-meta {
             text-align: right;
+            margin-top: 1.5rem;
+            color: #4b5563;
         }
-        .invoice-info {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 40px;
+
+        .invoice-meta h1 {
+            font-size: 1.25rem;
+            font-weight: bold;
         }
-        .client-info, .invoice-details {
-            width: 45%;
+
+        .invoice-meta p {
+            font-size: 0.875rem;
         }
-        .invoice-details table {
-            width: 100%;
+
+        .bill-to {
+            margin-top: 2rem;
+            color: #4b5563;
         }
-        .invoice-details td {
-            padding: 5px 0;
+
+        .bill-to h2 {
+            font-size: 1.1rem;
+            font-weight: bold;
         }
-        .invoice-items {
-            margin-bottom: 40px;
+
+        .bill-to p {
+            font-size: 0.9rem;
+            line-height: 1.4;
         }
-        .invoice-items table {
+
+        table {
             width: 100%;
             border-collapse: collapse;
+            margin-top: 2rem;
+            font-size: 0.9rem;
+            table-layout: fixed;
+            word-wrap: break-word;
         }
-        .invoice-items th {
-            background-color: #f7fafc;
+
+        th, td {
+            border: 1px solid #e5e7eb;
+            padding: 0.6rem 1rem;
             text-align: left;
-            padding: 12px;
-            border-bottom: 2px solid #e2e8f0;
         }
-        .invoice-items td {
-            padding: 12px;
-            border-bottom: 1px solid #e2e8f0;
+
+        th {
+            background-color: #F2F6FFFF;
+            font-weight: 700;
         }
-        .invoice-totals {
-            width: 300px;
+
+        .totals {
+            margin-top: 2rem;
+            width: 50%;
             margin-left: auto;
+            font-size: 0.9rem;
         }
-        .invoice-totals table {
-            width: 100%;
+
+        .totals td {
+            padding: 0.6rem 1rem;
         }
-        .invoice-totals td {
-            padding: 8px 0;
+
+        .totals .label {
+            font-weight: 700;
+            text-align: left;
         }
-        .invoice-totals .total-row {
-            font-weight: bold;
-            border-top: 2px solid #e2e8f0;
-            font-size: 18px;
+
+        .totals .value {
+            text-align: right;
         }
-        .invoice-footer {
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 2px solid #eee;
-            font-size: 14px;
-            color: #718096;
+
+        .text-green {
+            color: #10b981;
         }
-        .status-badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 14px;
-            font-weight: bold;
-            text-transform: uppercase;
+
+        .text-red {
+            color: #ef4444;
         }
-        .status-draft { background-color: #e2e8f0; color: #4a5568; }
-        .status-sent { background-color: #ebf8ff; color: #2b6cb0; }
-        .status-paid { background-color: #f0fff4; color: #2f855a; }
-        .status-overdue { background-color: #fff5f5; color: #c53030; }
-        .status-partial { background-color: #faf5ff; color: #6b46c1; }
+
+        .footer-note {
+            text-align: center;
+            font-size: 0.85rem;
+            margin: 1rem 0;
+            color: #6b7280;
+        }
+
+        @page {
+            margin: 40mm 10mm 30mm 10mm; /* top, right, bottom, left */
+            size: A4;
+        }
+
+        @media print {
+            body, .invoice-container {
+                box-shadow: none;
+                border-radius: 0;
+            }
+
+            .footer {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+            }
+        }
+
+        .w-full { width: 100%; }
+        .max-w-4xl { max-width: 56rem; }
+        .bg-white { background-color: white; }
+        .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .rounded-lg { border-radius: 8px; }
+        .p-6 { padding: 1.5rem; }
+        .mx-auto { margin-left: auto; margin-right: auto; }
+        .my-10 { margin-top: 2.5rem; margin-bottom: 2.5rem; }
+        .flex-col { flex-direction: column; }
+
+        /* Text styles */
+        .text-sm { font-size: 0.875rem; }
+        .text-xl { font-size: 1.25rem; }
+        .text-5xl { font-size: 3rem; }
+        .font-bold { font-weight: 700; }
+        .font-semibold { font-weight: 400; }
+        .text-center { text-align: center; }
+        .text-left { text-align: left; }
+        .text-right { text-align: right; }
+
+        /* Colors */
+        .text-blue-600 { color: #2563eb; }
+        .text-gray-700 { color: #374151; }
+        .text-green-500 { color: #10b981; }
+        .text-red-500 { color: #ef4444; }
+        .text-yellow-500 { color: #f59e0b; }
+        .text-gray-500 { color: #6b7280; }
+        .bg-gray-100 { background-color: #f3f4f6; }
+        .bg-white { background-color: white; }
+        .border-gray-200 { border-color: #e5e7eb; }
+
+        /* Spacing */
+        .px-10 { padding-left: 2.5rem; padding-right: 2.5rem; }
+        .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+        .px-4 { padding-left: 1rem; padding-right: 1rem; }
+        .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+        .mb-6 { margin-bottom: 1.5rem; }
+        .mt-6 { margin-top: 1.5rem; }
+        .my-6 { margin-top: 1.5rem; margin-bottom: 1.5rem; }
+
+        /* Layout */
+        .flex { display: flex; }
+        .items-end { align-items: flex-end; }
+        .justify-end { justify-content: flex-end; }
+        .justify-center { justify-content: center; }
+        .items-center { align-items: center; }
+        .gap-2 { gap: 0.5rem; }
+
+        /* Table styles */
+        .min-w-full { min-width: 100%; }
+        .border { border-width: 1px; border-style: solid; }
+        .border-b { border-bottom-width: 1px; border-bottom-style: solid; }
     </style>
 </head>
 <body>
-    <div class="invoice-header">
-        <div>
-            <h1>INVOICE</h1>
-            <h2>{{ $invoice->invoice_number }}</h2>
-        </div>
-        <div class="company-info">
-            <strong>Shakir Dynamics</strong><br>
-            123 Business Street<br>
-            City, State 12345<br>
-            contact@yourcompany.com
-        </div>
+    <div class="header">
+        <img src="{{ public_path('images/letterhead_items_header.png') }}" alt="Header" style="width: 100%; height: auto;">
     </div>
 
-    <div class="invoice-info">
-        <div class="client-info">
-            <strong>Bill To:</strong><br>
-            {{ $invoice->client->name }}<br>
-            @if($invoice->client->company_name)
-                {{ $invoice->client->company_name }}<br>
+    <div class="footer">
+        <div class="footer-note">Thank you for your business!</div>
+        <img src="{{ public_path('images/letterhead_items_footer.png') }}" alt="Footer" style="width: 100%; height: auto;">
+    </div>
+
+    <div class="invoice-content">
+        <div class="title">INVOICE</div>
+
+        <div class="invoice-meta">
+            <h1 style="padding-bottom: 20px;" >INVOICE #{{ $invoice->invoice_number }}</h1>
+            <p>Issue Date: {{ $invoice->issue_date->format('d-m-Y') }}</p>
+            <p>Due Date: {{ $invoice->due_date->format('d-m-Y') }}</p>
+            @if($invoice->is_recurring)
+                <p>Next Recurring: {{ $invoice->next_recurring_date }}</p>
             @endif
-            {{ $invoice->client->address }}<br>
-            {{ $invoice->client->city }}, {{ $invoice->client->state }} {{ $invoice->client->postal_code }}<br>
-            {{ $invoice->client->email }}
         </div>
-        <div class="invoice-details">
-            <table>
-                <tr>
-                    <td><strong>Issue Date:</strong></td>
-                    <td>{{ $invoice->issue_date->format('F j, Y') }}</td>
-                </tr>
-                <tr>
-                    <td><strong>Due Date:</strong></td>
-                    <td>{{ $invoice->due_date->format('F j, Y') }}</td>
-                </tr>
-                <tr>
-                    <td><strong>Status:</strong></td>
-                    <td>
-                        <span class="status-badge status-{{ $invoice->status }}">
-                            {{ ucfirst($invoice->status) }}
-                        </span>
-                    </td>
-                </tr>
-            </table>
-        </div>
-    </div>
 
-    <div class="invoice-items">
+        @if($invoice->status == 'paid')
+            <p class="text-sm">PAID ON: {{ $invoice->payments->last()->created_at->format('d-m-Y') }}</p>
+            <p class="text-sm">STATUS: <span class="{{ $invoice->status == 'paid' ? 'text-green-500' : ($invoice->status == 'overdue' ? 'text-red-500' : ($invoice->status == 'draft' ? 'text-gray-500' : 'text-yellow-500')) }} font-bold">{{ ucfirst($invoice->status) }}</span></p>
+            <p class="text-sm">PAYMENT METHOD: {{ $invoice->payments->pluck('payment_method')->join(', ') }}</p>
+        @endif
+
+        <div class="bill-to">
+            <h2>Bill To:</h2>
+            <p>{{ $client->company_name }}</p>
+            <p>{{ $client->address }}</p>
+            <p>{{ $client->email }}</p>
+        </div>
+
         <table>
             <thead>
                 <tr>
-                    <th>#</th>
-                    <th>Item</th>
-                    <th>Quantity</th>
-                    <th>Unit Price (GHS)</th>
-                    <th>Tax (GHS)</th>
-                    <th>Discount (GHS)</th>
-                    <th>Total (GHS)</th>
+                    <th class="text-center">No.</th>
+                    <th class="text-center">Item</th>
+                    <th class="text-center">Qty</th>
+                    <th class="text-center">Price (GHC)</th>
+                    <th class="text-center">Total (GHC)</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach($invoice->items as $item)
-                <tr>
-                    <td>{{ $loop->iteration }}</td>
-                    <td>{{ $item->product->name }}</td>
-                    <td>{{ $item->quantity }}</td>
-                    <td>{{ number_format($item->unit_price, 2, '.', ',') }}</td>
-                    <td>{{ number_format($item->tax_amount, 2, '.', ',') }}</td>
-                    <td>{{ number_format($item->discount_amount, 2, '.', ',') }}</td>
-                    <td>{{ number_format($item->total, 2, '.', ',') }}</td>
-                </tr>
+                    <tr>
+                        <td class="text-center" style="width: 10%;">{{ $loop->iteration }}</td>
+                        <td style="width: 40%;">{{ $item->product->name }}</td>
+                        <td class="text-center" style="width: 10%;">{{ $item->quantity }}</td>
+                        <td class="text-right">{{ number_format($item->unit_price, 2) }}</td>
+                        <td class="text-right">{{ number_format($item->total, 2) }}</td>
+                    </tr>
                 @endforeach
             </tbody>
         </table>
-    </div>
 
-    <div class="invoice-totals">
-        <table>
+        <table class="totals">
             <tr>
-                <td>Subtotal (GHS):</td>
-                <td align="right">{{ number_format($invoice->subtotal, 2, '.', ',') }}</td>
-            </tr>
-            @if($invoice->tax_amount > 0)
-            <tr>
-                <td>Tax ({{ $invoice->tax_rate }}%):</td>
-                <td align="right">{{ number_format($invoice->tax_amount, 2, '.', ',') }}</td>
-            </tr>
-            @endif
-            @if($invoice->discount_amount > 0)
-            <tr>
-                <td>Discount ({{ $invoice->discount_rate }}%):</td>
-                <td align="right">-{{ number_format($invoice->discount_amount, 2, '.', ',') }}</td>
-            </tr>
-            @endif
-            <tr class="total-row">
-                <td>Total:</td>
-                <td align="right">{{ number_format($invoice->grand_total, 2, '.', ',') }}</td>
-            </tr>
-            @if($invoice->amount_paid > 0)
-            <tr>
-                <td>Amount Paid:</td>
-                <td align="right">{{ number_format($invoice->amount_paid, 2, '.', ',') }}</td>
+                <td class="label">Subtotal:</td>
+                <td class="value">GHC {{ number_format($invoice->subtotal, 2) }}</td>
             </tr>
             <tr>
-                <td>Balance Due:</td>
-                <td align="right">{{ number_format($invoice->balance, 2, '.', ',') }}</td>
+                <td class="label">Discount ({{ $invoice->discount_rate }}%):</td>
+                <td class="value">-GHC {{ number_format($invoice->discount_amount, 2) }}</td>
             </tr>
+            <tr>
+                <td class="label">Tax ({{ $invoice->tax_rate }}%):</td>
+                <td class="value">GHC {{ number_format($invoice->tax_amount, 2) }}</td>
+            </tr>
+            <tr>
+                <td class="label">Total:</td>
+                <td class="value"><strong>GHC {{ number_format($invoice->total, 2) }}</strong></td>
+            </tr>
+            @if($invoice->status == 'paid')
+                <tr>
+                    <td class="label text-green">Amount Paid:</td>
+                    <td class="value text-green">GHC {{ number_format($invoice->amount_paid, 2) }}</td>
+                </tr>
+                <tr>
+                    <td class="label text-red">Balance Due:</td>
+                    <td class="value text-red">GHC {{ number_format($invoice->balance, 2) }}</td>
+                </tr>
             @endif
         </table>
     </div>
-
-    @if($invoice->notes || $invoice->terms)
-    <div class="invoice-footer">
-        @if($invoice->notes)
-        <div style="margin-bottom: 20px;">
-            <strong>Notes:</strong><br>
-            {{ $invoice->notes }}
-        </div>
-        @endif
-        @if($invoice->terms)
-        <div>
-            <strong>Terms & Conditions:</strong><br>
-            {{ $invoice->terms }}
-        </div>
-        @endif
-    </div>
-    @endif
 </body>
 </html>
