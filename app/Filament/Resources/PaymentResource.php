@@ -43,7 +43,7 @@ class PaymentResource extends Resource
                     ->options([
                         'cash' => 'Cash',
                         'bank_transfer' => 'Bank Transfer',
-                        'credit_card' => 'Credit Card',
+                        'card' => 'Credit Card',
                         'mobile_money' => 'Mobile Money',
                         'other' => 'Other',
                     ])
@@ -70,7 +70,7 @@ class PaymentResource extends Resource
         $paymentLabels = [
             'cash' => 'Cash',
             'bank_transfer' => 'Bank Transfer',
-            'credit_card' => 'Credit Card',
+            'card' => 'Credit Card',
             'mobile_money' => 'Mobile Money',
             'other' => 'Other',
         ];
@@ -126,7 +126,7 @@ class PaymentResource extends Resource
                     ->options([
                         'cash' => 'Cash',
                         'bank_transfer' => 'Bank Transfer',
-                        'credit_card' => 'Credit Card',
+                        'card' => 'Credit Card',
                         'mobile_money' => 'Mobile Money',
                         'other' => 'Other',
                     ]),
