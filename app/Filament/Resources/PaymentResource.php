@@ -132,7 +132,11 @@ class PaymentResource extends Resource
                     ]),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                // Tables\Actions\EditAction::make(),
+                Tables\Actions\Action::make('receipt')
+                        ->icon('heroicon-o-printer')
+                        ->url(fn (Payment $record): string => route('payments.receipt', $record))
+                        ->openUrlInNewTab(),
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([

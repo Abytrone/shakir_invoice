@@ -11,7 +11,7 @@ class InvoiceController extends Controller
 {
     public function print(Invoice $invoice)
     {
-        $pdf = PDF::loadView('invoices.download', [
+        $pdf = PDF::loadView('invoices.print', [
             'invoice' => $invoice,
             'client' => $invoice->client,
             'items' => $invoice->items,
@@ -22,7 +22,7 @@ class InvoiceController extends Controller
 
     public function download(Invoice $invoice)
     {
-        $pdf = PDF::loadView('invoices.download', [
+        $pdf = PDF::loadView('invoices.print', [
             'invoice' => $invoice,
             'client' => $invoice->client,
             'items' => $invoice->items,

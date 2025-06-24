@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Mail\InvoicePaid;
 use App\Models\Invoice;
+use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Barryvdh\DomPDF\Facade\Pdf;
+use NumberToWords\NumberToWords;
 
 class PaymentController extends Controller
 {
@@ -109,5 +112,35 @@ class PaymentController extends Controller
             'invoice' => $invoice,
             'message' => 'Invoice payment has been processed successfully.',
         ]);
+    }
+
+    public function receipt(Payment $payment)
+    {
+        $amount = $payment->invoice->total;
+        $integer = floor($amount);
+        $decimal = round(fmod($amount, 1) * 100);
+
+        $numberToWords = new NumberToWords();
+        $numberTransformer = $numberToWords->getNumberTransformer('en');
+
+        $words = ucfirst($numberTransformer->toWords($integer));
+        $words = preg_replace('/thousand\s+(?=\w)/i', 'thousand and ', $words);
+        $amountInWords = $words . ' Ghana Cedis';
+
+        if ($decimal > 0) {
+            $amountInWords .= ' and ' . $numberTransformer->toWords($decimal) . ' Pesewas';
+        }
+
+        $amountInWords .= ' Only';
+
+        $pdf = PDF::loadView('invoices.receipt', [
+            'payment' => $payment,
+            'invoice' => $payment->invoice,
+            'client' => $payment->invoice->client,
+            'items' => $payment->invoice->items,
+            'amountInWords' => strtoupper($amountInWords),
+        ]);
+
+        return $pdf->stream("Receipt-{$payment->reference_number}.pdf");
     }
 }
