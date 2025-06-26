@@ -10,11 +10,11 @@ We’re pleased to let you know your invoice **#{{ $invoice->invoice_number }}**
 **Due Date:** {{ \Carbon\Carbon::parse($invoice->due_date)->format('F j, Y') }}
 </x-mail::panel>
 
-<x-mail::button color="primary" :url="route('invoices.download', $invoice)">
+<x-mail::button color="primary" :url="$invoiceDownloadUrl">
 📄 View Invoice
 </x-mail::button>
 
-<x-mail::button color="success" :url="route('payments.initialize', $invoice)">
+<x-mail::button color="success" :url="$invoicePaymentInitUrl">
 💳 Make Payment
 </x-mail::button>
 
@@ -26,7 +26,7 @@ Warm regards,
 
 <x-mail::subcopy>
 If you're having trouble clicking the buttons, use these links:
-Invoice: {{ route('invoices.download', $invoice) }}
-Payment: {{ route('payments.initialize', $invoice) }}
+Invoice: {{ $invoiceDownloadUrl }}
+Payment: {{ $invoicePaymentInitUrl }}
 </x-mail::subcopy>
 </x-mail::message>

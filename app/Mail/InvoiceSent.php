@@ -9,10 +9,14 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\URL;
 
 class InvoiceSent extends Mailable // implements ShouldQueue
 {
     use Queueable, SerializesModels;
+
+    public string $invoiceDownloadUrl;
+    public string $invoicePaymentInitUrl;
 
     /**
      * Create a new message instance.
@@ -20,6 +24,8 @@ class InvoiceSent extends Mailable // implements ShouldQueue
     public function __construct(public Invoice $invoice)
     {
         $this->invoice->load(['client', 'items']);
+        $this->invoiceDownloadUrl = URL::signedRoute('invoice.download', ['invoice' => $invoice]);
+        $this->invoicePaymentInitUrl = URL::signedRoute('payments.initialize', ['invoice' => $invoice]);
     }
 
     /**

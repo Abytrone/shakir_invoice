@@ -8,17 +8,23 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\URL;
 
 class InvoicePaid extends Mailable
 {
     use Queueable, SerializesModels;
 
+    public string $invoiceDownloadUrl;
+    public string $invoicePaymentReceiptUrl;
 
     /**
      * Create a new message instance.
      */
     public function __construct(public Invoice $invoice, public float $amount)
     {
+        $this->invoiceDownloadUrl = URL::signedRoute('invoice.download', ['invoice' => $invoice]);
+        $this->invoicePaymentReceiptUrl = URL::signedRoute('payments.receipt', ['invoice' => $invoice]);
+
     }
 
     /**
