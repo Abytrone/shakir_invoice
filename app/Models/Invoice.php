@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use App\Constants\InvoiceStatus;
+use App\Observers\InvoiceObserver;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+#[ObservedBy(InvoiceObserver::class)]
 class Invoice extends Model
 {
     use HasFactory, SoftDeletes;
@@ -68,7 +71,7 @@ class Invoice extends Model
             get: function ($value, array $attributes) {
                 return $this->items->sum('total');
             },
-            set: fn ($value) => $value,
+            set: fn($value) => $value,
         );
     }
 
@@ -78,7 +81,7 @@ class Invoice extends Model
             get: function ($value, array $attributes) {
                 return $this->items->sum('total') * ($attributes['discount_rate'] / 100);
             },
-            set: fn ($value) => $value,
+            set: fn($value) => $value,
         );
     }
 
@@ -88,7 +91,7 @@ class Invoice extends Model
             get: function ($value, array $attributes) {
                 return $this->items->sum('total') * ($attributes['tax_rate'] / 100);
             },
-            set: fn ($value) => $value,
+            set: fn($value) => $value,
         );
     }
 
@@ -106,7 +109,7 @@ class Invoice extends Model
 
                 return round($result, 2);
             },
-            set: fn ($value) => $value,
+            set: fn($value) => $value,
         );
     }
 
@@ -155,16 +158,16 @@ class Invoice extends Model
     protected function amountPaid(): Attribute
     {
         return Attribute::make(
-            get: fn ($value, array $attributes) => $this->payments->sum('amount'),
-            set: fn ($value) => $value,
+            get: fn($value, array $attributes) => $this->payments->sum('amount'),
+            set: fn($value) => $value,
         );
     }
 
     protected function amountToPay(): Attribute
     {
         return Attribute::make(
-            get: fn ($value, array $attributes) => round($this->total - $this->payments->sum('amount'), 2),
-            set: fn ($value) => $value,
+            get: fn($value, array $attributes) => round($this->total - $this->payments->sum('amount'), 2),
+            set: fn($value) => $value,
         );
     }
 
@@ -182,7 +185,7 @@ class Invoice extends Model
         static::creating(function ($invoice) {
             $latestInvoice = static::withTrashed()->orderByDesc('id')->first();
             $nextNumber = $latestInvoice ? intval(substr($latestInvoice->invoice_number, 3)) + 1 : 1;
-            $invoice->invoice_number = 'INV'.str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
+            $invoice->invoice_number = 'INV' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
 
             self::setRecurringEndDate($invoice);
         });

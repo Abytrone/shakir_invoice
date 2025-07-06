@@ -9,6 +9,14 @@ use Illuminate\Support\Facades\Route;
 //     return view('welcome');
 // });
 
+Route::get('/update-uuid',function(){
+    foreach (Invoice::all() as $invoice) {
+        $invoice->invoice_uuid = Ramsey\Uuid\Uuid::uuid4()->toString();
+        $invoice->save();
+    }
+});
+
+
 Route::get('signed-url', function () {
 //    route('invoices.download', $invoice)
     return \Illuminate\Support\Facades\URL::signedRoute('invoices.download', Invoice::first());
