@@ -38,6 +38,7 @@ return [
     'mailers' => [
 
         'smtp' => [
+            'encryption' => env('MAIL_ENCRYPTION', 'tls'),
             'transport' => 'smtp',
             'scheme' => env('MAIL_SCHEME'),
             'url' => env('MAIL_URL'),
