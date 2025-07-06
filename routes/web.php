@@ -23,19 +23,19 @@ Route::redirect('/laravel/login', '/admin/login')->name('login');
 Route::redirect('/', '/admin');
 
 Route::middleware('signed')->group(function () {
-    Route::get('/invoices/{invoice:invoice_uuid}/download', [InvoiceController::class, 'download'])
+    Route::get('/invoices/{invoice}/download', [InvoiceController::class, 'download'])
         ->name('invoices.download');
 
-    Route::get('/payments/{invoice:invoice_uuid}', [PaymentController::class, 'initialize'])
+    Route::get('/payments/{invoice}', [PaymentController::class, 'initialize'])
         ->name('payments.initialize');
 
     Route::get('/payments/{payment}/receipt', [PaymentController::class, 'receipt'])
         ->name('payments.receipt');
 });
 
-Route::get('/invoices/{invoice:invoice_uuid}/print', [InvoiceController::class, 'print'])->name('invoices.print');
+Route::get('/invoices/{invoice}/print', [InvoiceController::class, 'print'])->name('invoices.print');
 
-Route::post('/invoices/{invoice:invoice_uuid}/send', [InvoiceController::class, 'send'])->name('invoices.send');
+Route::post('/invoices/{invoice}/send', [InvoiceController::class, 'send'])->name('invoices.send');
 Route::get('/payments/process', [PaymentController::class, 'process'])->name('payments.process');
 
 Route::get('preview-invoice/{invoice}', function () {
