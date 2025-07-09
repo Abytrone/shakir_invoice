@@ -14,7 +14,8 @@ return [
     |
     */
     'paystack' => [
-        'test_key' => env('PAYSTACK_KEY_TEST'),
+        'test_public_key' => env('PAYSTACK_TEST_PUBLIC_KEY'),
+        'test_secrete_key' => env('PAYSTACK_TEST_SECRET_KEY'),
         'live_key' => env('PAYSTACK_KEY_LIVE'),
     ],
 
