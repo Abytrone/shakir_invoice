@@ -306,12 +306,12 @@ class InvoiceResource extends Resource
 
                 Tables\Columns\TextColumn::make('issue_date')
                     ->date('M d, Y h:i A')
-                    ->toggleable()
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('due_date')
                     ->date('M d, Y h:i A')
-                    ->toggleable()
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('total')
@@ -339,7 +339,7 @@ class InvoiceResource extends Resource
                     ->label('Recurring'),
                 Tables\Columns\TextColumn::make('next_recurring_date')
                     ->label('Next Recurring')
-                    ->toggleable()
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->date('M d, Y h:i A'),
             ])
             ->filters([
@@ -356,8 +356,8 @@ class InvoiceResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
-                    Tables\Actions\ViewAction::make()
-                        ->icon('heroicon-o-eye'),
+                    // Tables\Actions\ViewAction::make()
+                    //     ->icon('heroicon-o-eye'),
 
                     Tables\Actions\Action::make('print')
                         ->icon('heroicon-o-printer')
@@ -370,7 +370,7 @@ class InvoiceResource extends Resource
                         ->openUrlInNewTab(),
 
                     Tables\Actions\Action::make('send')
-                        ->visible(fn (Invoice $record) => $record->status == 'draft')
+                        ->label(fn (Invoice $record) => $record->status == 'draft' ? 'Send' : 'Resend')
                         ->icon('heroicon-o-paper-airplane')
                         ->action(function (Invoice $record) {
                             $record->update(['status' => 'sent']);
@@ -380,9 +380,7 @@ class InvoiceResource extends Resource
                         ->requiresConfirmation(),
 
                     Tables\Actions\EditAction::make(),
-                    //                        ->visible(fn(Invoice $record) => $record->status == 'draft'),
                     Tables\Actions\DeleteAction::make(),
-                    //                        ->visible(fn(Invoice $record) => $record->status == 'draft'),
                 ]),
             ])
             ->bulkActions([

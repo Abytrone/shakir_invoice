@@ -233,7 +233,7 @@
     <div class="footer">
         <div class="footer-note">Thank you for your business!</div>
         <img src="{{ public_path('images/letterhead_items_footer.png') }}" alt="Footer" style="width: 100%; height: auto;">
-        <div style="font-family:'Courier New', Courier, monospace; text-align: center; font-size: smaller;" >DOCUMENT GENERTED BY SHAKIR INVOICE SYSTEM {{ date('M d, Y h:i:A') }}</div>
+        {{-- <div style="font-family:'Courier New', Courier, monospace; text-align: center; font-size: smaller;" >DOCUMENT GENERTED BY SHAKIR INVOICE SYSTEM {{ date('M d, Y h:i:A') }}</div> --}}
     </div>
 
     <div style="height: 40mm;"></div> {{-- Spacer for header --}}
