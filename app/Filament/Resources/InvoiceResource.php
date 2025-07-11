@@ -16,6 +16,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
 
 class InvoiceResource extends Resource
 {
@@ -366,7 +367,7 @@ class InvoiceResource extends Resource
 
                     Tables\Actions\Action::make('download')
                         ->icon('heroicon-o-arrow-down-tray')
-                        ->url(fn (Invoice $record): string => route('invoices.download', $record))
+                        ->url(fn (Invoice $record): string => URL::signedRoute('invoices.download', $record))
                         ->openUrlInNewTab(),
 
                     Tables\Actions\Action::make('send')

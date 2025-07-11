@@ -9,17 +9,22 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\URL;
 
 class InvoiceReminderSent extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
+    public string $invoicePaymentInitUrl;
+    public string $invoiceDownloadUrl;
 
     /**
      * Create a new message instance.
      */
     public function __construct(public Invoice $invoice, public int $daysBeforeDueDate)
     {
-        //
+        $this->invoicePaymentInitUrl = URL::signedRoute('payments.initialize', ['invoice' => $invoice]);
+        $this->invoiceDownloadUrl = URL::signedRoute('invoice.download', ['invoice' => $invoice]);
+
     }
 
     /**

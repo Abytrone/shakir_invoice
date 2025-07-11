@@ -12,6 +12,7 @@ use Filament\Tables\Table;
 use Filament\Tables\Filters\Filter;
 use Filament\Forms\Components\DatePicker;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\URL;
 
 class PaymentResource extends Resource
 {
@@ -43,7 +44,7 @@ class PaymentResource extends Resource
                     ->options([
                         'cash' => 'Cash',
                         'bank_transfer' => 'Bank Transfer',
-                        'credit_card' => 'Credit Card',
+                        'card' => 'Credit Card',
                         'mobile_money' => 'Mobile Money',
                         'other' => 'Other',
                     ])
@@ -70,7 +71,7 @@ class PaymentResource extends Resource
         $paymentLabels = [
             'cash' => 'Cash',
             'bank_transfer' => 'Bank Transfer',
-            'credit_card' => 'Credit Card',
+            'card' => 'Credit Card',
             'mobile_money' => 'Mobile Money',
             'other' => 'Other',
         ];
@@ -126,7 +127,7 @@ class PaymentResource extends Resource
                     ->options([
                         'cash' => 'Cash',
                         'bank_transfer' => 'Bank Transfer',
-                        'credit_card' => 'Credit Card',
+                        'card' => 'Credit Card',
                         'mobile_money' => 'Mobile Money',
                         'other' => 'Other',
                     ]),
@@ -135,7 +136,7 @@ class PaymentResource extends Resource
                 // Tables\Actions\EditAction::make(),
                 Tables\Actions\Action::make('receipt')
                         ->icon('heroicon-o-printer')
-                        ->url(fn (Payment $record): string => route('payments.receipt', $record))
+                        ->url(fn (Payment $record): string => URL::signedRoute('payments.receipt', $record))
                         ->openUrlInNewTab(),
                 Tables\Actions\DeleteAction::make(),
             ])

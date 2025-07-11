@@ -17,11 +17,11 @@ Status: ✅ Paid
 
 You can view or download your official invoice and receipt using the buttons below:
 
-<x-mail::button :url="route('invoices.download', $invoice)">
+<x-mail::button :url="$invoiceDownloadUrl">
 📄 Download Invoice
 </x-mail::button>
 
-<x-mail::button :url="route('receipts.download', $invoice)">
+<x-mail::button :url="$invoiceDownloadUrl">
 🧾 View Receipt
 </x-mail::button>
 
@@ -32,7 +32,7 @@ Warm regards,
 
 <x-mail::subcopy>
 If you're having trouble clicking the buttons, copy and paste the URLs below into your browser:
-Invoice: {{ route('invoices.download', $invoice) }}
-Receipt: {{ route('payments.receipt', $invoice) }}
+Invoice: {{ $invoiceDownloadUrl }}
+Receipt: {{ $invoicePaymentReceiptUrl }}
 </x-mail::subcopy>
 </x-mail::message>

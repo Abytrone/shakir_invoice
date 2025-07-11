@@ -93,7 +93,7 @@ class PaymentController extends Controller
             ->firstOrCreate(
                 ['reference_number' => $ref], [
                     'amount' => $amount,
-                    'note' => '...',
+                    'notes' => '...',
                     'payment_method' => $channel,
                 ]);
 
@@ -105,7 +105,7 @@ class PaymentController extends Controller
             $invoice->update(['status' => 'partial']);
         }
 
-        Mail::to($invoice)->send(new InvoicePaid($invoice, $amount));
+        Mail::to($invoice->client->email)->send(new InvoicePaid($invoice, $amount));
 
         info('Payment processed successfully for invoice: '.$invoice->invoice_number);
         return view('payments.success', [

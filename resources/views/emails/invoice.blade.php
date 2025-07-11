@@ -60,7 +60,7 @@
             <p>You can download the invoice by clicking the button below or find it attached to this email.</p>
 
             <p style="text-align: center;">
-                <a href="{{ route('invoices.download', $invoice) }}" class="button">Download Invoice</a>
+                <a href="{{ \Illuminate\Support\Facades\URL::signedRoute('invoices.download', $invoice) }}" class="button">Download Invoice</a>
             </p>
 
             <p>If you have any questions about this invoice, please don't hesitate to contact us.</p>
