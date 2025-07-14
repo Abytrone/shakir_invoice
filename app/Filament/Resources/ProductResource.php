@@ -39,10 +39,7 @@ class ProductResource extends Resource
                             ->required()
                             ->numeric()
                             ->prefix('₵'),
-                        Forms\Components\TextInput::make('tax_rate')
-                            ->numeric()
-                            ->default(0)
-                            ->suffix('%'),
+
                         Forms\Components\Toggle::make('is_active')
                             ->label('Active')
                             ->default(true),
@@ -70,10 +67,7 @@ class ProductResource extends Resource
                 Tables\Columns\TextColumn::make('unit_price')
                     ->money('GHS')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('tax_rate')
-                    ->numeric(2)
-                    ->suffix('%')
-                    ->sortable(),
+
                 Tables\Columns\IconColumn::make('is_active')
                     ->boolean()
                     ->sortable(),
