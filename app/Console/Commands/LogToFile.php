@@ -26,5 +26,6 @@ class LogToFile extends Command
     public function handle(): void
     {
         info('this is a log message');
+        throw new \RuntimeException('This is a runtime exception');
     }
 }
