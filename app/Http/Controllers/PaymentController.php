@@ -44,7 +44,7 @@ class PaymentController extends Controller
         ];
 
         $response = Http::withHeaders([
-            'Authorization' => 'Bearer '.config('services.paystack.test_key'),
+            'Authorization' => 'Bearer '.config('services.paystack.live_secret_key'),
         ])->post('https://api.paystack.co/transaction/initialize', $data);
 
         $res = json_decode($response, true);
@@ -66,7 +66,7 @@ class PaymentController extends Controller
         info('Processing payment for reference: '.$request->reference);
         $ref = $request->reference;
 
-        $response = Http::withHeaders(['Authorization' => 'Bearer '.config('services.paystack.test_key')])
+        $response = Http::withHeaders(['Authorization' => 'Bearer '.config('services.paystack.live_secret_key')])
             ->get('https://api.paystack.co/transaction/verify/'.$ref);
 
         if (! $response['status']) {
