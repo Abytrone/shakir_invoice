@@ -32,13 +32,13 @@ class InvoiceResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Basic Information')
                     ->schema([
-                        Forms\Components\Select::make('client_id')
-                            ->relationship('client', 'company_name')
-                            ->searchable()
-                            ->preload()
-                            ->required()
-                            ->label('Client')
-                            ->helperText('Select the client for this invoice'),
+//                        Forms\Components\Select::make('client_id')
+//                            ->relationship('client', 'company_name')
+//                            ->searchable()
+//                            ->preload()
+//                            ->required()
+//                            ->label('Client')
+//                            ->helperText('Select the client for this invoice'),
 
                         Forms\Components\DatePicker::make('issue_date')
                             ->required()
@@ -54,36 +54,37 @@ class InvoiceResource extends Resource
                             ->helperText('The date when the invoice payment is due')
                             ->minDate(fn (callable $get) => $get('issue_date')),
 
-                        Forms\Components\Select::make('status')
-                            ->options([
-                                'draft' => 'Draft',
-                                'sent' => 'Sent',
-                                'paid' => 'Paid',
-                                'overdue' => 'Overdue',
-                                'partial' => 'Partial',
-                            ])
-                            ->default('draft')
-                            ->required()
-                            ->label('Status')
-                            ->helperText('Current status of the invoice')
-                            ->reactive(),
+//                        Forms\Components\Select::make('status')
+//                            ->options([
+//                                'draft' => 'Draft',
+//                                'sent' => 'Sent',
+//                                'paid' => 'Paid',
+//                                'overdue' => 'Overdue',
+//                                'partial' => 'Partial',
+//                            ])
+//                            ->default('draft')
+//                            ->required()
+//                            ->label('Status')
+//                            ->helperText('Current status of the invoice')
+//                            ->reactive(),
                     ])->columns(4),
 
                 Forms\Components\Section::make('Invoice Items')
                     ->schema([
                         Forms\Components\Repeater::make('items')
+                            ->relationship()
                             ->schema([
                                 // First row
                                 Forms\Components\Grid::make(3)
                                     ->schema([
-                                        Forms\Components\Select::make('product_id')
-                                            ->relationship('product', 'name')
-                                            ->searchable()
-                                            ->preload()
-                                            ->required()
-                                            ->label('Product')
-                                            ->helperText('Select a product to add to the invoice')
-                                            ->live()
+//                                        Forms\Components\Select::make('product_id')
+//                                            ->relationship('product', 'name')
+//                                            ->searchable()
+//                                            ->preload()
+//                                            ->required()
+//                                            ->label('Product')
+//                                            ->helperText('Select a product to add to the invoice')
+//                                            ->live()
 //                                            ->getOptionLabelFromRecordUsing(fn(Product $record) => $record->name)
 //                                            ->disableOptionWhen(function ($value, $state, Get $get) {
 //                                                return collect($get('../*.product_id'))
@@ -91,7 +92,7 @@ class InvoiceResource extends Resource
 //                                                    ->filter()
 //                                                    ->contains($value);
 //                                            })
-                                            ->columnSpan(1),
+//                                            ->columnSpan(1),
 
                                         Forms\Components\TextInput::make(name: 'quantity')
                                             ->integer()
@@ -222,15 +223,15 @@ class InvoiceResource extends Resource
                             ->helperText('Set up automatic invoice generation')
                             ->reactive(),
 
-                        Forms\Components\Select::make('recurring_frequency')
-                            ->options([
-                                'monthly' => 'Monthly',
-                                'yearly' => 'Yearly',
-                            ])
-                            ->visible(fn (Get $get) => $get('is_recurring'))
-                            ->required(fn (Get $get) => $get('is_recurring'))
-                            ->label('Frequency')
-                            ->helperText('How often should the invoice be generated'),
+//                        Forms\Components\Select::make('recurring_frequency')
+//                            ->options([
+//                                'monthly' => 'Monthly',
+//                                'yearly' => 'Yearly',
+//                            ])
+//                            ->visible(fn (Get $get) => $get('is_recurring'))
+//                            ->required(fn (Get $get) => $get('is_recurring'))
+//                            ->label('Frequency')
+//                            ->helperText('How often should the invoice be generated'),
 
                     ])->columns(),
             ]);
