@@ -72,7 +72,6 @@ class InvoiceResource extends Resource
                 Forms\Components\Section::make('Invoice Items')
                     ->schema([
                         Forms\Components\Repeater::make('items')
-                            ->relationship()
                             ->schema([
                                 // First row
                                 Forms\Components\Grid::make(3)
