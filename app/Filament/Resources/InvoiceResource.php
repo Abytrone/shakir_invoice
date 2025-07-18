@@ -223,15 +223,15 @@ class InvoiceResource extends Resource
                             ->helperText('Set up automatic invoice generation')
                             ->reactive(),
 
-//                        Forms\Components\Select::make('recurring_frequency')
-//                            ->options([
-//                                'monthly' => 'Monthly',
-//                                'yearly' => 'Yearly',
-//                            ])
-//                            ->visible(fn (Get $get) => $get('is_recurring'))
-//                            ->required(fn (Get $get) => $get('is_recurring'))
-//                            ->label('Frequency')
-//                            ->helperText('How often should the invoice be generated'),
+                        Forms\Components\Select::make('recurring_frequency')
+                            ->options([
+                                'monthly' => 'Monthly',
+                                'yearly' => 'Yearly',
+                            ])
+                            ->visible(fn (Get $get) => $get('is_recurring'))
+                            ->required(fn (Get $get) => $get('is_recurring'))
+                            ->label('Frequency')
+                            ->helperText('How often should the invoice be generated'),
 
                     ])->columns(),
             ]);
