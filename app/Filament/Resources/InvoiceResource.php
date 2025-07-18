@@ -85,6 +85,7 @@ class InvoiceResource extends Resource
                                             ->label('Product')
                                             ->helperText('Select a product to add to the invoice')
                                             ->live()
+                                            ->getOptionLabelFromRecordUsing(fn(Product $record) => $record->name)
                                             ->disableOptionWhen(function ($value, $state, Get $get) {
                                                 return collect($get('../*.product_id'))
                                                     ->reject(fn ($id) => $id == $state)
