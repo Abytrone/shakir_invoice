@@ -32,13 +32,13 @@ class InvoiceResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Basic Information')
                     ->schema([
-//                        Forms\Components\Select::make('client_id')
-//                            ->relationship('client', 'company_name')
-//                            ->searchable()
-//                            ->preload()
-//                            ->required()
-//                            ->label('Client')
-//                            ->helperText('Select the client for this invoice'),
+                        Forms\Components\Select::make('client_id')
+                            ->relationship('client', 'company_name')
+                            ->searchable()
+                            ->preload()
+                            ->required()
+                            ->label('Client')
+                            ->helperText('Select the client for this invoice'),
 
                         Forms\Components\DatePicker::make('issue_date')
                             ->required()
