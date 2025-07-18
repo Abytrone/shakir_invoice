@@ -23,7 +23,7 @@ class InvoiceMail extends Mailable
 
     public function build()
     {
-        return $this->subject("Invoice {$this->invoice->invoice_number} from Your Company")
+        return $this->subject("Invoice {$this->invoice->invoice_number} from " . config('app.name'))
             ->view('emails.invoice')
             ->attachData($this->pdfContent, "invoice-{$this->invoice->invoice_number}.pdf", [
                 'mime' => 'application/pdf',

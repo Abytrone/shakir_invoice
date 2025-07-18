@@ -31,7 +31,6 @@ class ClientResource extends Resource
                             ->maxLength(255),
                         Forms\Components\TextInput::make('email')
                             ->email()
-                            ->required()
                             ->maxLength(255)
                             ->unique(ignoreRecord: true),
                         Forms\Components\TextInput::make('phone')
@@ -54,14 +53,14 @@ class ClientResource extends Resource
                         Forms\Components\Textarea::make('address')
                             ->maxLength(65535)
                             ->columnSpanFull(),
-                        Forms\Components\TextInput::make('city')
-                            ->maxLength(255),
-                        Forms\Components\TextInput::make('state')
-                            ->maxLength(255),
-                        Forms\Components\TextInput::make('country')
-                            ->maxLength(255),
-                        Forms\Components\TextInput::make('postal_code')
-                            ->maxLength(255),
+                        // Forms\Components\TextInput::make('city')
+                        //     ->maxLength(255),
+                        // Forms\Components\TextInput::make('state')
+                        //     ->maxLength(255),
+                        // Forms\Components\TextInput::make('country')
+                        //     ->maxLength(255),
+                        // Forms\Components\TextInput::make('postal_code')
+                        //     ->maxLength(255),
                     ])->columns(4),
 
                 Forms\Components\Section::make('Additional Information')
