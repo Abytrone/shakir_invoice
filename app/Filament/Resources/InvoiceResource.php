@@ -33,7 +33,7 @@ class InvoiceResource extends Resource
                 Forms\Components\Section::make('Basic Information')
                     ->schema([
                         Forms\Components\Select::make('client_id')
-                            ->relationship('client', 'company_name')
+                            ->relationship('client', 'name')
                             ->searchable()
                             ->preload()
                             ->required()
@@ -54,19 +54,19 @@ class InvoiceResource extends Resource
                             ->helperText('The date when the invoice payment is due')
                             ->minDate(fn (callable $get) => $get('issue_date')),
 
-//                        Forms\Components\Select::make('status')
-//                            ->options([
-//                                'draft' => 'Draft',
-//                                'sent' => 'Sent',
-//                                'paid' => 'Paid',
-//                                'overdue' => 'Overdue',
-//                                'partial' => 'Partial',
-//                            ])
-//                            ->default('draft')
-//                            ->required()
-//                            ->label('Status')
-//                            ->helperText('Current status of the invoice')
-//                            ->reactive(),
+                        Forms\Components\Select::make('status')
+                            ->options([
+                                'draft' => 'Draft',
+                                'sent' => 'Sent',
+                                'paid' => 'Paid',
+                                'overdue' => 'Overdue',
+                                'partial' => 'Partial',
+                            ])
+                            ->default('draft')
+                            ->required()
+                            ->label('Status')
+                            ->helperText('Current status of the invoice')
+                            ->reactive(),
                     ])->columns(4),
 
                 Forms\Components\Section::make('Invoice Items')

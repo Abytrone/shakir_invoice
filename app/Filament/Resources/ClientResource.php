@@ -42,6 +42,7 @@ class ClientResource extends Resource
                 Forms\Components\Section::make('Company Details')
                     ->schema([
                         Forms\Components\TextInput::make('company_name')
+                            ->required()
                             ->maxLength(255),
                         Forms\Components\TextInput::make('tax_number')
                             ->maxLength(255),
