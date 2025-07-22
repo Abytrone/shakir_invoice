@@ -30,11 +30,13 @@ class ClientResource extends Resource
                             ->required()
                             ->maxLength(255),
                         Forms\Components\TextInput::make('email')
-                            ->email()
+                            ->email(function ($state){
+                                return $state != null;
+                            })
                             ->maxLength(255)
                             ->unique(ignoreRecord: true),
                         Forms\Components\TextInput::make('phone')
-                            ->required()
+
                             ->tel()
                             ->maxLength(255),
                     ])->columns(3),
@@ -42,7 +44,7 @@ class ClientResource extends Resource
                 Forms\Components\Section::make('Company Details')
                     ->schema([
                         Forms\Components\TextInput::make('company_name')
-                            ->required()
+
                             ->maxLength(255),
                         Forms\Components\TextInput::make('tax_number')
                             ->maxLength(255),

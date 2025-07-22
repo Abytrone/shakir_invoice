@@ -22,12 +22,12 @@ class PaymentController extends Controller
                 'message' => 'This invoice has already been paid.',
             ]);
         }
-        Log::info('amount to pay: '.$invoice->amount_to_pay * 100);
+        Log::info('amount to pay: ' . $invoice->amount_to_pay * 100);
         $remainingBalance = $invoice->amount_to_pay * 100;
         $data = [
             'email' => $invoice->client->email,
             'mobile' => $invoice->client->phone,
-            'amount' => (int) $remainingBalance,
+            'amount' => (int)$remainingBalance,
             'metadata' => [
                 'custom_fields' => [
                     [
@@ -44,17 +44,17 @@ class PaymentController extends Controller
         ];
 
         $response = Http::withHeaders([
-            'Authorization' => 'Bearer '.config('services.paystack.live_secret_key'),
+            'Authorization' => 'Bearer ' . config('services.paystack.live_secret_key'),
         ])->post('https://api.paystack.co/transaction/initialize', $data);
 
         $res = json_decode($response, true);
-        if (! $res['status']) {
+        if (!$res['status']) {
             return view('payments.success', [
                 'invoice' => null,
                 'message' => 'Failed to initialize payment.',
             ]);
         }
-        Log::info('reference: '.$res['data']['reference']);
+        Log::info('reference: ' . $res['data']['reference']);
 
         return redirect($res['data']['authorization_url']);
 
@@ -63,13 +63,13 @@ class PaymentController extends Controller
     public function process(Request $request)
     {
 
-        info('Processing payment for reference: '.$request->reference);
+        info('Processing payment for reference: ' . $request->reference);
         $ref = $request->reference;
 
-        $response = Http::withHeaders(['Authorization' => 'Bearer '.config('services.paystack.live_secret_key')])
-            ->get('https://api.paystack.co/transaction/verify/'.$ref);
+        $response = Http::withHeaders(['Authorization' => 'Bearer ' . config('services.paystack.live_secret_key')])
+            ->get('https://api.paystack.co/transaction/verify/' . $ref);
 
-        if (! $response['status']) {
+        if (!$response['status']) {
             return view('payments.success', [
                 'invoice' => null,
                 'message' => 'There was an error processing your payment. Please try again.',
@@ -82,7 +82,7 @@ class PaymentController extends Controller
 
         $invoice = Invoice::where('invoice_number', $invoiceNumber)->first();
 
-        if (! $invoice) {
+        if (!$invoice) {
             return view('payments.success', [
                 'invoice' => null,
                 'message' => 'Invoice not found. Please check the invoice number and try again.',
@@ -92,10 +92,10 @@ class PaymentController extends Controller
         $invoice->payments()
             ->firstOrCreate(
                 ['reference_number' => $ref], [
-                    'amount' => $amount,
-                    'notes' => '...',
-                    'payment_method' => $channel,
-                ]);
+                'amount' => $amount,
+                'notes' => '...',
+                'payment_method' => $channel,
+            ]);
 
         if ($invoice->isPaid()) {
             $invoice->update(['status' => 'paid']);
@@ -105,9 +105,11 @@ class PaymentController extends Controller
             $invoice->update(['status' => 'partial']);
         }
 
-        Mail::to($invoice->client->email)->send(new InvoicePaid($invoice, $amount));
+        if ($invoice->client->hasEmail()) {
+            Mail::to($invoice->client->email)->send(new InvoicePaid($invoice, $amount));
+        }
 
-        info('Payment processed successfully for invoice: '.$invoice->invoice_number);
+        info('Payment processed successfully for invoice: ' . $invoice->invoice_number);
         return view('payments.success', [
             'invoice' => $invoice,
             'message' => 'Invoice payment has been processed successfully.',

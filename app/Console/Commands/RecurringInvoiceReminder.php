@@ -45,8 +45,12 @@ class RecurringInvoiceReminder extends Command
         foreach ($invoices as $invoice) {
             $daysBeforeDueDate = $invoice->due_date->diffInDays(today());
             $invoice->update(['due_reminder_date' => now()]);
-            Mail::to($invoice->client->email)
-                ->send(new InvoiceReminderSent($invoice, $daysBeforeDueDate));
+
+            if ($invoice->client->hasEmail()) {
+                Mail::to($invoice->client->email)
+                    ->send(new InvoiceReminderSent($invoice, $daysBeforeDueDate));
+            }
+
 
         }
     }

@@ -376,8 +376,12 @@ class InvoiceResource extends Resource
                         ->icon('heroicon-o-paper-airplane')
                         ->action(function (Invoice $record) {
                             $record->update(['status' => 'sent']);
-                            Mail::to($record->client->email)
-                                ->send(new InvoiceSent($record));
+
+                            if($record->client->hasEmail()){
+                                Mail::to($record->client->email)
+                                    ->send(new InvoiceSent($record));
+                            }
+
                         })
                         ->requiresConfirmation(),
 

@@ -54,8 +54,8 @@ class GenerateRecurringInvoices extends Command
             $this->info('Recurring invoice generation completed successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Failed to generate recurring invoices: '.$e->getMessage());
-            $this->error('Failed to generate recurring invoices: '.$e->getMessage());
+            Log::error('Failed to generate recurring invoices: ' . $e->getMessage());
+            $this->error('Failed to generate recurring invoices: ' . $e->getMessage());
         }
     }
 
@@ -86,7 +86,7 @@ class GenerateRecurringInvoices extends Command
         // Generate new invoice number
         $latestInvoice = Invoice::withTrashed()->latest()->first();
         $nextNumber = $latestInvoice ? intval(substr($latestInvoice->invoice_number, 3)) + 1 : 1;
-        $newInvoice->invoice_number = 'REC-'.str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
+        $newInvoice->invoice_number = 'REC-' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
 
         $newInvoice->save();
 
@@ -100,9 +100,11 @@ class GenerateRecurringInvoices extends Command
         }
 
         $originalInvoice->update(['has_next' => true]);
+        if ($newInvoice->client->hasEmail()) {
+            Mail::to($newInvoice->client->email)
+                ->queue(new InvoiceSent($newInvoice));
+        }
 
-        Mail::to($newInvoice->client->email)
-            ->queue(new InvoiceSent($newInvoice));
 
         $this->info("Generated new invoice {$newInvoice->invoice_number} for {$originalInvoice->invoice_number}");
     }
