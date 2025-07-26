@@ -8,17 +8,18 @@ use Symfony\Component\HttpFoundation\Response;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        web: __DIR__.'/../routes/web.php',
-        commands: __DIR__.'/../routes/console.php',
+        web: __DIR__ . '/../routes/web.php',
+        commands: __DIR__ . '/../routes/console.php',
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
         //
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
-        if(app()->environment('production')) {
+
+        if (app()->environment('production')) {
             $exceptions->reportable(static function (Throwable $exception) {
+                report($exception);
                 try {
                     $content['message'] = $exception->getMessage();
 
@@ -38,13 +39,10 @@ return Application::configure(basePath: dirname(__DIR__))
                     Mail::to('mahmudsheikh25@gmail.com')->send(new ExceptionOccured($content));
 
 
-
                 } catch (Throwable $exception) {
                     Log::error('custom',[$exception]);
 
                 }
             });
         }
-
-        info('', ['exception'=>$exceptions]);
     })->create();

@@ -254,7 +254,7 @@
 
         <div class="bill-to">
             <h2>Bill To:</h2>
-            <p>{{ $client->company_name }}</p>
+            <p>{{ $client->name }}</p>
             <p>{{ $client->address }}</p>
             <p>{{ $client->email }}</p>
             <p>{{ $client->phone }}</p>
