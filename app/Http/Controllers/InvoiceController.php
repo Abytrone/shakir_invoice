@@ -27,10 +27,15 @@ class InvoiceController extends Controller
 
     public function download(Invoice $invoice)
     {
+        $containsProducts = $invoice->items->contains(function ($item) {
+            return $item->type === 'product';
+        });
         $pdf = PDF::loadView('invoices.print', [
             'invoice' => $invoice,
             'client' => $invoice->client,
             'items' => $invoice->items,
+            'containsProducts' => $containsProducts,
+
         ]);
 
         return $pdf->download("invoice-{$invoice->invoice_number}.pdf");
