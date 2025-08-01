@@ -23,9 +23,9 @@
 
         .header {
             position: fixed;
-            top: 20;
-            left: 50;
-            right: 50;
+            top: 20px;
+            left: 50px;
+            right: 50px;
             height: 40mm;
             z-index: -1;
         }
@@ -42,8 +42,8 @@
         .invoice-content {
             /* padding-top: 35mm;
             padding-bottom: 35mm; */
-            padding-left: 50;
-            padding-right: 50;
+            padding-left: 50px;
+            padding-right: 50px;
             box-sizing: border-box;
         }
 
@@ -258,6 +258,11 @@
             <p>{{ $client->address }}</p>
             <p>{{ $client->email }}</p>
             <p>{{ $client->phone }}</p>
+        </div>
+
+        <div style="margin-top: 10px;margin-bottom: 10px">
+            <p>Dear Sir/Madam</p>
+            <p>Please find below the billing details for the <b> month of {{$invoice->issue_date->format('F')}}</b> </p>
         </div>
 
         <table>
