@@ -11,10 +11,15 @@ class InvoiceController extends Controller
 {
     public function print(Invoice $invoice)
     {
+        $containsProducts = $invoice->items->contains(function ($item) {
+            return $item->type === 'product';
+        });
+
         $pdf = PDF::loadView('invoices.print', [
             'invoice' => $invoice,
             'client' => $invoice->client,
             'items' => $invoice->items,
+            'containsProducts' => $containsProducts,
         ]);
 
         return $pdf->stream("Invoice-{$invoice->invoice_number}.pdf");

@@ -166,125 +166,268 @@
             }
         }
 
-        .w-full { width: 100%; }
-        .max-w-4xl { max-width: 56rem; }
-        .bg-white { background-color: white; }
-        .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
-        .rounded-lg { border-radius: 8px; }
-        .p-6 { padding: 1.5rem; }
-        .mx-auto { margin-left: auto; margin-right: auto; }
-        .my-10 { margin-top: 2.5rem; margin-bottom: 2.5rem; }
-        .flex-col { flex-direction: column; }
+        .w-full {
+            width: 100%;
+        }
+
+        .max-w-4xl {
+            max-width: 56rem;
+        }
+
+        .bg-white {
+            background-color: white;
+        }
+
+        .shadow-lg {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .rounded-lg {
+            border-radius: 8px;
+        }
+
+        .p-6 {
+            padding: 1.5rem;
+        }
+
+        .mx-auto {
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .my-10 {
+            margin-top: 2.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .flex-col {
+            flex-direction: column;
+        }
 
         /* Text styles */
-        .text-sm { font-size: 0.875rem; }
-        .text-xl { font-size: 1.25rem; }
-        .text-5xl { font-size: 3rem; }
-        .font-bold { font-weight: 700; }
-        .font-semibold { font-weight: 400; }
-        .text-center { text-align: center; }
-        .text-left { text-align: left; }
-        .text-right { text-align: right; }
+        .text-sm {
+            font-size: 0.875rem;
+        }
+
+        .text-xl {
+            font-size: 1.25rem;
+        }
+
+        .text-5xl {
+            font-size: 3rem;
+        }
+
+        .font-bold {
+            font-weight: 700;
+        }
+
+        .font-semibold {
+            font-weight: 400;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-left {
+            text-align: left;
+        }
+
+        .text-right {
+            text-align: right;
+        }
 
         /* Colors */
-        .text-blue-600 { color: #2563eb; }
-        .text-gray-700 { color: #374151; }
-        .text-green-500 { color: #10b981; }
-        .text-red-500 { color: #ef4444; }
-        .text-yellow-500 { color: #f59e0b; }
-        .text-gray-500 { color: #6b7280; }
-        .bg-gray-100 { background-color: #f3f4f6; }
-        .bg-white { background-color: white; }
-        .border-gray-200 { border-color: #e5e7eb; }
+        .text-blue-600 {
+            color: #2563eb;
+        }
+
+        .text-gray-700 {
+            color: #374151;
+        }
+
+        .text-green-500 {
+            color: #10b981;
+        }
+
+        .text-red-500 {
+            color: #ef4444;
+        }
+
+        .text-yellow-500 {
+            color: #f59e0b;
+        }
+
+        .text-gray-500 {
+            color: #6b7280;
+        }
+
+        .bg-gray-100 {
+            background-color: #f3f4f6;
+        }
+
+        .bg-white {
+            background-color: white;
+        }
+
+        .border-gray-200 {
+            border-color: #e5e7eb;
+        }
 
         /* Spacing */
-        .px-10 { padding-left: 2.5rem; padding-right: 2.5rem; }
-        .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
-        .px-4 { padding-left: 1rem; padding-right: 1rem; }
-        .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
-        .mb-4 { margin-bottom: 0.5rem; }
-        .mb-5 { margin-bottom: 1rem; }
-        .mb-6 { margin-bottom: 1.5rem; }
-        .mt-6 { margin-top: 1.5rem; }
-        .my-6 { margin-top: 1.5rem; margin-bottom: 1.5rem; }
+        .px-10 {
+            padding-left: 2.5rem;
+            padding-right: 2.5rem;
+        }
+
+        .py-2 {
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+
+        .px-4 {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        .py-2 {
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+
+        .mb-4 {
+            margin-bottom: 0.5rem;
+        }
+
+        .mb-5 {
+            margin-bottom: 1rem;
+        }
+
+        .mb-6 {
+            margin-bottom: 1.5rem;
+        }
+
+        .mt-6 {
+            margin-top: 1.5rem;
+        }
+
+        .my-6 {
+            margin-top: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
 
         /* Layout */
-        .flex { display: flex; }
-        .items-end { align-items: flex-end; }
-        .justify-end { justify-content: flex-end; }
-        .justify-center { justify-content: center; }
-        .items-center { align-items: center; }
-        .gap-2 { gap: 0.5rem; }
+        .flex {
+            display: flex;
+        }
+
+        .items-end {
+            align-items: flex-end;
+        }
+
+        .justify-end {
+            justify-content: flex-end;
+        }
+
+        .justify-center {
+            justify-content: center;
+        }
+
+        .items-center {
+            align-items: center;
+        }
+
+        .gap-2 {
+            gap: 0.5rem;
+        }
 
         /* Table styles */
-        .min-w-full { min-width: 100%; }
-        .border { border-width: 1px; border-style: solid; }
-        .border-b { border-bottom-width: 1px; border-bottom-style: solid; }
+        .min-w-full {
+            min-width: 100%;
+        }
+
+        .border {
+            border-width: 1px;
+            border-style: solid;
+        }
+
+        .border-b {
+            border-bottom-width: 1px;
+            border-bottom-style: solid;
+        }
     </style>
 </head>
 <body>
-    {{-- <div style="height: 40mm;"></div> Spacer for header --}}
+{{-- <div style="height: 40mm;"></div> Spacer for header --}}
 
-    <div class="header">
-        <img src="{{ public_path('images/letterhead_items_header.png') }}" alt="Header" style="width: 100%; height: auto;">
-        <div class="title">INVOICE</div>
+<div class="header">
+    <img src="{{ public_path('images/letterhead_items_header.png') }}" alt="Header" style="width: 100%; height: auto;">
+    <div class="title">INVOICE</div>
+</div>
+
+<div class="footer">
+    <div class="footer-note">Thank you for your business!</div>
+    <img src="{{ public_path('images/letterhead_items_footer.png') }}" alt="Footer" style="width: 100%; height: auto;">
+    {{-- <div style="font-family:'Courier New', Courier, monospace; text-align: center; font-size: smaller;" >DOCUMENT GENERTED BY SHAKIR INVOICE SYSTEM {{ date('M d, Y h:i:A') }}</div> --}}
+</div>
+
+<div style="height: 40mm;"></div> {{-- Spacer for header --}}
+
+<div class="invoice-content">
+
+    <div class="invoice-meta">
+        <div style="text-align: left;">
+            <h1 class="mb-5"><span class="meta-title">INVOICE </span><span styl>#{{ $invoice->invoice_number }}</span>
+            </h1>
+            <p class="text-sm mb-4"><span
+                    class="meta-title">ISSUE DATE: </span>{{ $invoice->issue_date->format('d-m-Y') }}</p>
+            <p class="text-sm mb-4"><span class="meta-title">DUE DATE: </span>{{ $invoice->due_date->format('d-m-Y') }}
+            </p>
+
+            @if($invoice->is_recurring)
+                <p class="text-sm mb-4"><span
+                        class="meta-title">NEXT INVOICE: </span>{{ $invoice->next_recurring_date }}</p>
+            @endif
+        </div>
     </div>
 
-    <div class="footer">
-        <div class="footer-note">Thank you for your business!</div>
-        <img src="{{ public_path('images/letterhead_items_footer.png') }}" alt="Footer" style="width: 100%; height: auto;">
-        {{-- <div style="font-family:'Courier New', Courier, monospace; text-align: center; font-size: smaller;" >DOCUMENT GENERTED BY SHAKIR INVOICE SYSTEM {{ date('M d, Y h:i:A') }}</div> --}}
+    <div class="bill-to">
+        <h2>Bill To:</h2>
+        <p>{{ $client->name }}</p>
+        <p>{{ $client->address }}</p>
+        <p>{{ $client->email }}</p>
+        <p>{{ $client->phone }}</p>
     </div>
 
-    <div style="height: 40mm;"></div> {{-- Spacer for header --}}
-
-    <div class="invoice-content">
-
-        <div class="invoice-meta">
-            <div style="text-align: left;">
-                <h1 class="mb-5"><span class="meta-title">INVOICE </span><span styl>#{{ $invoice->invoice_number }}</span></h1>
-                <p class="text-sm mb-4"><span class="meta-title">ISSUE DATE: </span>{{ $invoice->issue_date->format('d-m-Y') }}</p>
-                <p class="text-sm mb-4"><span class="meta-title">DUE DATE: </span>{{ $invoice->due_date->format('d-m-Y') }}</p>
-
-                @if($invoice->is_recurring)
-                <p class="text-sm mb-4"><span class="meta-title">NEXT INVOICE: </span>{{ $invoice->next_recurring_date }}</p>
-                @endif
-            </div>
-        </div>
-
-        <div class="bill-to">
-            <h2>Bill To:</h2>
-            <p>{{ $client->name }}</p>
-            <p>{{ $client->address }}</p>
-            <p>{{ $client->email }}</p>
-            <p>{{ $client->phone }}</p>
-        </div>
-
+    @if(!$containsProducts)
         <div style="margin-top: 10px;margin-bottom: 10px">
             <p>Dear Sir/Madam</p>
-            <p>Please find below the billing details for the <b> month of {{$invoice->issue_date->format('F')}}</b> </p>
+            <p>We appreciate your continued business with Shakir Dynamics Ltd. Please find below the billing details for
+                the internet services provided to you for then <b> month of {{$invoice->issue_date->format('F')}}</b>
+            </p>
         </div>
+    @endif
 
         <table>
             <thead>
-                <tr>
-                    <th class="text-center">No.</th>
-                    <th class="text-center">Item</th>
-                    <th class="text-center">Qty</th>
-                    <th class="text-center">Price (GHC)</th>
-                    <th class="text-center">Total (GHC)</th>
-                </tr>
+            <tr>
+                <th class="text-center">No.</th>
+                <th class="text-center">Item</th>
+                <th class="text-center">Qty</th>
+                <th class="text-center">Price (GHC)</th>
+                <th class="text-center">Total (GHC)</th>
+            </tr>
             </thead>
             <tbody>
-                @foreach($invoice->items as $item)
-                    <tr>
-                        <td class="text-center" style="width: 10%;">{{ $loop->iteration }}</td>
-                        <td style="width: 40%;">{{ $item->product->name }}</td>
-                        <td class="text-center" style="width: 10%;">{{ $item->quantity }}</td>
-                        <td class="text-right">{{ number_format($item->unit_price, 2) }}</td>
-                        <td class="text-right">{{ number_format($item->total, 2) }}</td>
-                    </tr>
-                @endforeach
+            @foreach($invoice->items as $item)
+                <tr>
+                    <td class="text-center" style="width: 10%;">{{ $loop->iteration }}</td>
+                    <td style="width: 40%;">{{ $item->product->name }}</td>
+                    <td class="text-center" style="width: 10%;">{{ $item->quantity }}</td>
+                    <td class="text-right">{{ number_format($item->unit_price, 2) }}</td>
+                    <td class="text-right">{{ number_format($item->total, 2) }}</td>
+                </tr>
+            @endforeach
             </tbody>
         </table>
 
@@ -316,7 +459,7 @@
                 </tr>
             @endif
         </table>
-    </div>
-    {{-- <div style="height: 70mm;"></div> Spacer for footer --}}
+</div>
+{{-- <div style="height: 70mm;"></div> Spacer for footer --}}
 </body>
 </html>
