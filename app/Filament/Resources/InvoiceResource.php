@@ -302,7 +302,7 @@ class InvoiceResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('client.company_name')
+                Tables\Columns\TextColumn::make('client.name')
                     ->searchable()
                     ->sortable(),
 
