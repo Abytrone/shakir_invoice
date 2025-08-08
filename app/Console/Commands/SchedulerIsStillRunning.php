@@ -25,10 +25,11 @@ class SchedulerIsStillRunning extends Command
     public function handle(): void
     {
         try {
+            $this->info(now()->toString() . 'Sending email to notify that the scheduler is still running...');
             Mail::to('mahmudsheikh25@gmail.com')
                 ->send(new \App\Mail\SchedulerIsStillRunning());
         } catch (\Exception $e) {
-            $this->error('Failed to send email: ' . $e->getMessage());
+            $this->error(now()->toString() .'Failed to send email: ' . $e->getMessage());
         }
 
     }
