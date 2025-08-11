@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\Route;
 //     return view('welcome');
 // });
 
+Route::get('schedule-tasks', function(){
+    \Log::info('Scheduled tasks are running');
+});
 
 
 
