@@ -62,5 +62,21 @@ class PaystackService
         }
     }
 
+    public function refundPayment(string $reference, float|int $param)
+    {
+        try {
+            $data = [
+                'transaction' => $reference,
+                'amount' => $param,
+            ];
+            return Http::withHeaders(['Authorization' => 'Bearer ' . config('services.paystack.live_secret_key')])
+                ->post('https://api.paystack.co/refund', $data);
+        } catch (\Exception $e) {
+            Log::info('failed to refund payment: ' . $e->getMessage());
+            return null;
+        }
+
+    }
+
 
 }

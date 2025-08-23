@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Mail\InvoicePaid;
+use App\Models\AuthPayment;
 use App\Models\Client;
 use App\Models\Invoice;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -35,6 +36,12 @@ class PaymentSaved implements ShouldQueue
                 ->where('auth_email',
                     $meta->firstWhere('variable_name', 'auth_email')['value'])
                 ->update(['auth_res' => json_encode($data['authorization'])]);
+            AuthPayment::query()
+                ->create([
+                    'auth_email' => $meta->firstWhere('variable_name', 'auth_email')['value'],
+                    'reference' => $data['reference'],
+                    'amount' => $data['amount'] / 100,
+                ]);
             info('updated client auth res');
         }
 
