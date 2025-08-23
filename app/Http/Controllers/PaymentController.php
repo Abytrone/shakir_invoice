@@ -108,7 +108,7 @@ class PaymentController extends Controller
 
         $ref = $request->reference;
 
-       $response = $this->paystackService->verify($ref);
+       return $response = $this->paystackService->verify($ref);
 
         if (!$response['status']) {
             return view('payments.success', [
