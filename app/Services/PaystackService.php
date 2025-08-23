@@ -10,32 +10,11 @@ use Illuminate\Support\Facades\Log;
 class PaystackService
 {
 
-    public function createAuthorization($email, $authorizationCode, $amount)
-    {
-        $data = [
-            'email' => $email,
-            'amount' => $amount,
-            'authorization_code' => $authorizationCode,
-        ];
-
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . config('services.paystack.live_secret_key'),
-        ])->post('https://api.paystack.co/transaction/charge_authorization', $data);
-
-        $res = json_decode($response, true);
-        if (!$res['status']) {
-            return view('payments.success', [
-                'invoice' => null,
-                'message' => 'Failed to initialize payment.',
-            ]);
-        }
-    }
-
     public function chargeAuthorization($email, $authorizationCode, $amount)
     {
         $data = [
             'email' => $email,
-            'amount' => $amount,
+            'amount' => $amount * 100,
             'authorization_code' => $authorizationCode,
         ];
 

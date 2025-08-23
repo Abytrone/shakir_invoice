@@ -181,16 +181,16 @@ class PaymentController extends Controller
 
     public function handleWebhook(Request $request)
     {
-        info('Payment verification initiated.', ['request' => $request->all()]);
+        info('handle webhook start.', [$request->all()]);
 
         if ($request->event !== 'charge.success') {
-            info('Ignoring non charge.success event: ' . $request->event);
+            info('Ignoring non charge.success event: ', [$request]);
             return response()->json(['status' => 'ignored']);
         }
         $data = $request->data;
 
         PaymentSaved::dispatch($data);
-        info('Payment dispatched successfully.');
+        info('handle webhook end.');
         return response()->json(['status' => 'done']);
 
     }

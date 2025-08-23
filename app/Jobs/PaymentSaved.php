@@ -27,6 +27,7 @@ class PaymentSaved implements ShouldQueue
      */
     public function handle(array $data): void
     {
+        info('Handling payment saved job', [$data]);
         $metaData = $data['metadata']['custom_fields'];
         info('meta data', [$metaData]);
         $meta = collect($metaData);

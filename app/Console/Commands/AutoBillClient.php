@@ -3,7 +3,6 @@
 namespace App\Console\Commands;
 
 use App\Constants\InvoiceStatus;
-use App\Models\Client;
 use App\Models\Invoice;
 use App\Services\PaystackService;
 use Illuminate\Console\Command;
@@ -45,8 +44,12 @@ class AutoBillClient extends Command
             if ($invoice->isOverdue()) {
                 $res = json_decode($invoice->client->auth_res);
                 if ($invoice->client->shouldBeBillAutomatically()) {
-                    $paystackService->chargeAuthorization($invoice->client->auth_email, $res->authorization_code, $invoice->total);
-
+                    $res = $paystackService->chargeAuthorization($invoice->client->auth_email, $res->authorization_code, $invoice->total);
+                    $data = $res->json();
+                    if ($data['data']['status'] == 'failed') {
+                        $this->error("Failed to bill client {$invoice->client->name} for invoice #{$invoice->id}");
+                        continue;
+                    }
                     $billedCount++;
                 }
                 //todo: send email notification

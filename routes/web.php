@@ -28,7 +28,7 @@ Route::redirect('/laravel/login', '/admin/login')->name('login');
 
 Route::redirect('/', '/admin');
 
-Route::post('/payments/webhook', [PaymentController::class, 'handleWebhook'])->name('payments.webhook');
+//Route::post('/payments/webhook', [PaymentController::class, 'handleWebhook'])->name('payments.webhook');
 Route::get('/payments/process', [PaymentController::class, 'process'])->name('payments.process');
 Route::get('/payments/auth', [PaymentController::class, 'auth'])
     ->name('payments.auth');
