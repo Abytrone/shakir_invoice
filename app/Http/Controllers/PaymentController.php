@@ -29,7 +29,7 @@ class PaymentController extends Controller
         $data = [
             'email' => $email,
             'mobile' => $phone,
-            'amount' => 10,
+            'amount' => 100, // 1 GHS in pesewas
             'metadata' => [
                 'custom_fields' => [
                     [

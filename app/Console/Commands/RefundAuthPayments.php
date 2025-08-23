@@ -27,11 +27,15 @@ class RefundAuthPayments extends Command
      */
     public function handle(PaystackService $paystackService)
     {
+        info('Getting Refunding payment');
         $p = AuthPayment::query()->get();
 
+        $re = $paystackService->refundPayment('cvsqx1tpu5', 0.10 * 100);
+        $res = json_decode($re, true);
+        dd($res);
         foreach ($p as $payment) {
             info('Refunding payment', [$payment]);
-            $paystackService->refundPayment($payment->reference, $payment->amount * 100);
+
         }
     }
 }

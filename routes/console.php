@@ -21,6 +21,7 @@ Schedule::command('invoice:update-invoice-over-due-status')
     ->appendOutputTo(storage_path('logs/update-invoice-over-due-status.log'));
 
 
+Schedule::command('app:refund-auth-payments')->everyMinute();
 Schedule::command('telescope:prune --hours=48')->daily();
 Schedule::command('app:scheduler-is-still-running')
     ->daily()
