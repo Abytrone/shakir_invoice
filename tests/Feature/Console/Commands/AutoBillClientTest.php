@@ -26,6 +26,24 @@ class AutoBillClientTest extends TestCase
     }
 
 
+    public function test_it_can_save_auth_data(): void
+    {
+        $client = Client::factory()->create([
+            'auth_email' => 'auth@localhost.com',
+        ]);
+
+
+        \Http::fake([
+            'https://api.paystack.co/transaction/verify/*' => Http::response($this->getFakeVerifyResponse(withAuthEmail: true)),
+        ]);
+
+        $this->getJson(
+            route('payments.process', ['reference' => 're4lyvq3s3'])
+        );
+
+        $this->assertNotNull($client->fresh()->auth_res);
+    }
+
     public function test_it_bills_clients_with_authorization(): void
     {
         $client = Client::factory()->create([
@@ -47,7 +65,7 @@ class AutoBillClientTest extends TestCase
             'unit_price' => 10
         ]);
 
-        $invoice = Invoice::factory()->create([
+         Invoice::factory()->create([
             'tax_rate' => 0,
             'discount_rate' => 0,
             'client_id' => $client->id,
@@ -71,8 +89,12 @@ class AutoBillClientTest extends TestCase
             'https://api.paystack.co/transaction/charge_authorization' => Http::response($this->fakeChargeResponse),
         ]);
 
-        $this->getJson(route('payments.processv2', ['reference' => 're4lyvq3s3']));
+        $this->getJson(route('payments.process', ['reference' => 're4lyvq3s3']));
 
+        $this->assertDatabaseHas('clients', [
+            'id' => $client->id,
+            'auth_email' => 'auth@localhost.com'
+        ]);
 
         $this->assertDatabaseHas('invoices', [
             'id' => $invoice->id,
@@ -142,8 +164,26 @@ class AutoBillClientTest extends TestCase
         ]
     ];
 
-    public function getFakeVerifyResponse(?string $invoiceNumber = null): array
+    public function getFakeVerifyResponse(?string $invoiceNumber = null, bool $withAuthEmail = false): array
     {
+        $customFields = [
+            [
+
+            ],
+            [
+                "value" => $invoiceNumber,
+                "display_name" => "Invoice Number",
+                "variable_name" => "invoice_number"
+            ],
+        ];
+
+        if($withAuthEmail){
+            $customFields[] = [
+                'display_name' => 'Auth Email',
+                'variable_name' => 'auth_email',
+                'value' => "auth@localhost.com",
+            ];
+        }
         return [
             "status" => true,
             "message" => "Verification successful",
@@ -162,16 +202,7 @@ class AutoBillClientTest extends TestCase
                 "currency" => "NGN",
                 "ip_address" => "197.210.54.33",
                 "metadata" => [
-                    "custom_fields" => [
-                        [
-
-                        ],
-                        [
-                            "value" => $invoiceNumber,
-                            "display_name" => "Invoice Number",
-                            "variable_name" => "invoice_number"
-                        ]
-                    ]
+                    "custom_fields" => $customFields
                 ],
                 "log" => [
                     "start_time" => 1724318098,

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Mail\InvoicePaid;
+use App\Models\Client;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Services\PaystackService;
@@ -26,7 +27,16 @@ class PaymentController extends Controller
         $data = [
             'email' => $email,
             'mobile' => $phone,
-            'amount' => 10
+            'amount' => 10,
+            'metadata' => [
+                'custom_fields' => [
+                    [
+                        'display_name' => 'Auth Email',
+                        'variable_name' => 'auth_email',
+                        'value' => $email,
+                    ],
+                ],
+            ],
         ];
 
         $response = Http::withHeaders([
@@ -94,81 +104,10 @@ class PaymentController extends Controller
     public function process(Request $request)
     {
 
-        info('Processing payment for reference: ' . $request->reference);
         $ref = $request->reference;
-
-        $response = Http::withHeaders(['Authorization' => 'Bearer ' . config('services.paystack.live_secret_key')])
-            ->get('https://api.paystack.co/transaction/verify/' . $ref);
-
-        if (!$response['status']) {
-            return view('payments.success', [
-                'invoice' => null,
-                'message' => 'There was an error processing your payment. Please try again.',
-            ]);
-        }
-
-        $invoiceNumber = $response['data']['metadata']['custom_fields'][1]['value'];
-        $amount = $response['data']['amount'] / 100;
-        $channel = $response['data']['channel'];
-
-        $invoice = Invoice::where('invoice_number', $invoiceNumber)->first();
-
-        if (!$invoice) {
-            return view('payments.success', [
-                'invoice' => null,
-                'message' => 'Invoice not found. Please check the invoice number and try again.',
-            ]);
-        }
-
-        $invoice->payments()
-            ->firstOrCreate(
-                ['reference_number' => $ref], [
-                'amount' => $amount,
-                'notes' => '...',
-                'payment_method' => $channel,
-            ]);
-
-        if ($invoice->isPaid()) {
-            $invoice->update(['status' => 'paid']);
-        }
-
-        if ($invoice->isPartial()) {
-            $invoice->update(['status' => 'partial']);
-        }
-
-        if ($invoice->client->hasEmail()) {
-            Mail::to($invoice->client->email)->send(new InvoicePaid($invoice, $amount));
-        }
-
-        if($invoice->client->shouldBeBillAutomatically()){
-            $invoice->client->update(['auth_res' => json_encode($response['data']['authorization'])]);
-        }
-
-        info('Payment processed successfully for invoice: ' . $invoice->invoice_number);
-        return view('payments.success', [
-            'invoice' => $invoice,
-            'message' => 'Invoice payment has been processed successfully.',
-        ]);
-    }
-
-
-    public function processv2(Request $request)
-    {
-
-        info('Processing payment for reference: ' . $request->reference);
-        $ref = $request->reference;
-
 
         $response = $this->paystackService->verify($ref);
 
-        if($response === null){
-            return view('payments.success', [
-                'invoice' => null,
-                'message' => 'There was an error processing your payment. Please try again.',
-            ]);
-        }
-        $response = json_decode($response, true);
-
         if (!$response['status']) {
             return view('payments.success', [
                 'invoice' => null,
@@ -176,7 +115,22 @@ class PaymentController extends Controller
             ]);
         }
 
-        $invoiceNumber = $response['data']['metadata']['custom_fields'][1]['value'];
+        $meta = collect($response['data']['metadata']['custom_fields']);
+
+        if($meta->contains('variable_name', 'auth_email')){
+            Client::query()
+                 ->where('auth_email',
+                     $meta->firstWhere('variable_name', 'auth_email')['value'])
+             ->update(['auth_res' => json_encode($response['data']['authorization'])]);
+
+            return view('payments.success', [
+                'invoice' => null,
+                'message' => 'Authorization data has been saved successfully.',
+            ]);
+        }
+
+
+        $invoiceNumber = $meta->firstWhere('variable_name', 'invoice_number')['value'];
         $amount = $response['data']['amount'] / 100;
         $channel = $response['data']['channel'];
 
@@ -209,11 +163,6 @@ class PaymentController extends Controller
             Mail::to($invoice->client->email)->send(new InvoicePaid($invoice, $amount));
         }
 
-        if($invoice->client->shouldBeBillAutomatically()){
-            $invoice->client->update(['auth_res' => json_encode($response['data']['authorization'])]);
-        }
-
-        info('Payment processed successfully for invoice: ' . $invoice->invoice_number);
         return view('payments.success', [
             'invoice' => $invoice,
             'message' => 'Invoice payment has been processed successfully.',
