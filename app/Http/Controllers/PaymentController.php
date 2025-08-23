@@ -20,6 +20,7 @@ class PaymentController extends Controller
     {
 
     }
+
     public function auth(Request $request)
     {
         $email = $request->auth_email;
@@ -103,10 +104,11 @@ class PaymentController extends Controller
 
     public function process(Request $request)
     {
+        info('Payment verification initiated.', ['request' => $request->all()]);
 
         $ref = $request->reference;
 
-        $response = $this->paystackService->verify($ref);
+       $response = $this->paystackService->verify($ref);
 
         if (!$response['status']) {
             return view('payments.success', [
@@ -115,14 +117,22 @@ class PaymentController extends Controller
             ]);
         }
 
+        if (!$response['status']) {
+            return view('payments.success', [
+                'invoice' => null,
+                'message' => 'There was an error processing your payment. Please try again.',
+            ]);
+        }
+
+        info('meta data', [$response['data']['metadata']['custom_fields']]);
         $meta = collect($response['data']['metadata']['custom_fields']);
 
-        if($meta->contains('variable_name', 'auth_email')){
+        if ($meta->contains('variable_name', 'auth_email')) {
             Client::query()
-                 ->where('auth_email',
-                     $meta->firstWhere('variable_name', 'auth_email')['value'])
-             ->update(['auth_res' => json_encode($response['data']['authorization'])]);
-
+                ->where('auth_email',
+                    $meta->firstWhere('variable_name', 'auth_email')['value'])
+                ->update(['auth_res' => json_encode($response['data']['authorization'])]);
+            info('updated client auth res');
             return view('payments.success', [
                 'invoice' => null,
                 'message' => 'Authorization data has been saved successfully.',
