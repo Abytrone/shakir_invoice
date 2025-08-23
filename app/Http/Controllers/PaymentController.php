@@ -19,6 +19,32 @@ class PaymentController extends Controller
     {
 
     }
+    public function auth(Request $request)
+    {
+        $email = $request->auth_email;
+        $phone = $request->auth_phone;
+        $data = [
+            'email' => $email,
+            'mobile' => $phone,
+            'amount' => 10
+        ];
+
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . config('services.paystack.live_secret_key'),
+        ])->post('https://api.paystack.co/transaction/initialize', $data);
+
+        $res = json_decode($response, true);
+        if (!$res['status']) {
+            return view('payments.success', [
+                'invoice' => null,
+                'message' => 'Failed to initialize payment.',
+            ]);
+        }
+
+        return redirect($res['data']['authorization_url']);
+
+    }
+
     public function initialize(Invoice $invoice, Request $request)
     {
         if ($invoice->isPaid()) {

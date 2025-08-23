@@ -35,6 +35,9 @@ Route::middleware('signed')->group(function () {
     Route::get('/invoices/{invoice:invoice_uuid}/download', [InvoiceController::class, 'download'])
         ->name('invoices.download');
 
+    Route::get('/payments/auth', [PaymentController::class, 'auth'])
+        ->name('payments.auth');
+
     Route::get('/payments/{invoice:invoice_uuid}', [PaymentController::class, 'initialize'])
         ->name('payments.initialize');
 
