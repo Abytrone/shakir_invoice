@@ -51,7 +51,7 @@ class PaymentController extends Controller
                 'message' => 'Failed to initialize payment.',
             ]);
         }
-
+        return $res;
         return redirect($res['data']['authorization_url']);
 
     }
@@ -108,7 +108,7 @@ class PaymentController extends Controller
 
         $ref = $request->reference;
 
-       return $response = $this->paystackService->verify($ref);
+        $response = $this->paystackService->verify($ref);
 
         if (!$response['status']) {
             return view('payments.success', [
