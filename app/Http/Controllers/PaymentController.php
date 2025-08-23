@@ -51,7 +51,7 @@ class PaymentController extends Controller
                 'message' => 'Failed to initialize payment.',
             ]);
         }
-        return $res;
+        return $response;
         return redirect($res['data']['authorization_url']);
 
     }
