@@ -30,13 +30,13 @@ Route::redirect('/', '/admin');
 
 Route::get('/payments/process', [PaymentController::class, 'process'])->name('payments.process');
 Route::get('/payments/processv2', [PaymentController::class, 'processv2'])->name('payments.processv2');
-
+Route::get('/payments/auth', [PaymentController::class, 'auth'])
+    ->name('payments.auth');
 Route::middleware('signed')->group(function () {
     Route::get('/invoices/{invoice:invoice_uuid}/download', [InvoiceController::class, 'download'])
         ->name('invoices.download');
 
-    Route::get('/payments/auth', [PaymentController::class, 'auth'])
-        ->name('payments.auth');
+
 
     Route::get('/payments/{invoice:invoice_uuid}', [PaymentController::class, 'initialize'])
         ->name('payments.initialize');
