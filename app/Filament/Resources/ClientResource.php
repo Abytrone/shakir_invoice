@@ -37,7 +37,7 @@ class ClientResource extends Resource
                             ->unique(ignoreRecord: true),
 
                         Forms\Components\TextInput::make('auth_email')
-                            ->hint('This is the email address that will be used to authenticate recurrent card charges.')
+                            ->hint('For auto billing.')
                             ->email(function ($state){
                                 return $state != null;
                             })
