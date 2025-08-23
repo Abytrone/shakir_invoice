@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\PaymentSaved;
 use App\Mail\InvoicePaid;
 use App\Models\Client;
 use App\Models\Invoice;
@@ -108,7 +109,7 @@ class PaymentController extends Controller
         $ref = $request->reference;
 
         $response = $this->paystackService->verify($ref);
-        info('res', [$response]);
+
         if (!$response['status']) {
             return view('payments.success', [
                 'invoice' => null,
@@ -176,6 +177,22 @@ class PaymentController extends Controller
             'invoice' => $invoice,
             'message' => 'Invoice payment has been processed successfully.',
         ]);
+    }
+
+    public function handleWebhook(Request $request)
+    {
+        info('Payment verification initiated.', ['request' => $request->all()]);
+
+        if ($request->event !== 'charge.success') {
+            info('Ignoring non charge.success event: ' . $request->event);
+            return response()->json(['status' => 'ignored']);
+        }
+        $data = $request->data;
+
+        PaymentSaved::dispatch($data);
+        info('Payment dispatched successfully.');
+        return response()->json(['status' => 'done']);
+
     }
 
     public function receipt(Payment $payment)
