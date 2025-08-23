@@ -28,9 +28,8 @@ Route::redirect('/laravel/login', '/admin/login')->name('login');
 
 Route::redirect('/', '/admin');
 
-Route::get('/payments/webhook', [PaymentController::class, 'handleWebhook'])->name('payments.webhook');
+Route::post('/payments/webhook', [PaymentController::class, 'handleWebhook'])->name('payments.webhook');
 Route::get('/payments/process', [PaymentController::class, 'process'])->name('payments.process');
-Route::get('/payments/processv2', [PaymentController::class, 'processv2'])->name('payments.processv2');
 Route::get('/payments/auth', [PaymentController::class, 'auth'])
     ->name('payments.auth');
 Route::middleware('signed')->group(function () {
