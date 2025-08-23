@@ -32,7 +32,7 @@ class AutoBillClient extends Command
     {
         $this->info('Starting auto bill client...');
         $authBillInvoice = Invoice::query()
-            ->where('status', '!=' , InvoiceStatus::DRAFT)
+            ->whereNotIn('status', [InvoiceStatus::DRAFT, InvoiceStatus::PAID])
             ->where('is_recurring', true)
             ->withWhereHas('client', function ($query) {
                 $query->where('auth_email', '!=', null)
