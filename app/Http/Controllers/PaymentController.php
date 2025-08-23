@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Mail\InvoicePaid;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Services\PaystackService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -14,6 +15,10 @@ use NumberToWords\NumberToWords;
 
 class PaymentController extends Controller
 {
+    function __construct(public PaystackService $paystackService)
+    {
+
+    }
     public function initialize(Invoice $invoice, Request $request)
     {
         if ($invoice->isPaid()) {
@@ -107,6 +112,79 @@ class PaymentController extends Controller
 
         if ($invoice->client->hasEmail()) {
             Mail::to($invoice->client->email)->send(new InvoicePaid($invoice, $amount));
+        }
+
+        if($invoice->client->shouldBeBillAutomatically()){
+            $invoice->client->update(['auth_res' => json_encode($response['data']['authorization'])]);
+        }
+
+        info('Payment processed successfully for invoice: ' . $invoice->invoice_number);
+        return view('payments.success', [
+            'invoice' => $invoice,
+            'message' => 'Invoice payment has been processed successfully.',
+        ]);
+    }
+
+
+    public function processv2(Request $request)
+    {
+
+        info('Processing payment for reference: ' . $request->reference);
+        $ref = $request->reference;
+
+
+        $response = $this->paystackService->verify($ref);
+
+        if($response === null){
+            return view('payments.success', [
+                'invoice' => null,
+                'message' => 'There was an error processing your payment. Please try again.',
+            ]);
+        }
+        $response = json_decode($response, true);
+
+        if (!$response['status']) {
+            return view('payments.success', [
+                'invoice' => null,
+                'message' => 'There was an error processing your payment. Please try again.',
+            ]);
+        }
+
+        $invoiceNumber = $response['data']['metadata']['custom_fields'][1]['value'];
+        $amount = $response['data']['amount'] / 100;
+        $channel = $response['data']['channel'];
+
+        $invoice = Invoice::where('invoice_number', $invoiceNumber)->first();
+
+        if (!$invoice) {
+            return view('payments.success', [
+                'invoice' => null,
+                'message' => 'Invoice not found. Please check the invoice number and try again.',
+            ]);
+        }
+
+        $invoice->payments()
+            ->firstOrCreate(
+                ['reference_number' => $ref], [
+                'amount' => $amount,
+                'notes' => '...',
+                'payment_method' => $channel,
+            ]);
+
+        if ($invoice->isPaid()) {
+            $invoice->update(['status' => 'paid']);
+        }
+
+        if ($invoice->isPartial()) {
+            $invoice->update(['status' => 'partial']);
+        }
+
+        if ($invoice->client->hasEmail()) {
+            Mail::to($invoice->client->email)->send(new InvoicePaid($invoice, $amount));
+        }
+
+        if($invoice->client->shouldBeBillAutomatically()){
+            $invoice->client->update(['auth_res' => json_encode($response['data']['authorization'])]);
         }
 
         info('Payment processed successfully for invoice: ' . $invoice->invoice_number);

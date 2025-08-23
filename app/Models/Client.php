@@ -18,6 +18,11 @@ class Client extends Model
     {
         return $this->email !== null && $this->email !== '';
     }
+
+    public function shouldBeBillAutomatically(): bool
+    {
+        return $this->auth_email !== null && $this->authemail !== '';
+    }
     public function quotes(): HasMany
     {
         return $this->hasMany(Quote::class);

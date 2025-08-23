@@ -28,6 +28,9 @@ Route::redirect('/laravel/login', '/admin/login')->name('login');
 
 Route::redirect('/', '/admin');
 
+Route::get('/payments/process', [PaymentController::class, 'process'])->name('payments.process');
+Route::get('/payments/processv2', [PaymentController::class, 'processv2'])->name('payments.processv2');
+
 Route::middleware('signed')->group(function () {
     Route::get('/invoices/{invoice:invoice_uuid}/download', [InvoiceController::class, 'download'])
         ->name('invoices.download');
@@ -42,7 +45,6 @@ Route::middleware('signed')->group(function () {
 Route::get('/invoices/{invoice:invoice_uuid}/print', [InvoiceController::class, 'print'])->name('invoices.print');
 
 Route::post('/invoices/{invoice:invoice_uuid}/send', [InvoiceController::class, 'send'])->name('invoices.send');
-Route::get('/payments/process', [PaymentController::class, 'process'])->name('payments.process');
 
 Route::get('preview-invoice/{invoice}', function () {
     return (new \App\Mail\InvoiceSent(Invoice::with('client')->first()))->render();

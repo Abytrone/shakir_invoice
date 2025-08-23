@@ -35,6 +35,14 @@ class ClientResource extends Resource
                             })
                             ->maxLength(255)
                             ->unique(ignoreRecord: true),
+
+                        Forms\Components\TextInput::make('auth_email')
+                            ->hint('This is the email address that will be used to authenticate recurrent card charges.')
+                            ->email(function ($state){
+                                return $state != null;
+                            })
+                            ->maxLength(255)
+                            ->unique(ignoreRecord: true),
                         Forms\Components\TextInput::make('phone')
 
                             ->tel()
@@ -55,14 +63,6 @@ class ClientResource extends Resource
                         Forms\Components\Textarea::make('address')
                             ->maxLength(65535)
                             ->columnSpanFull(),
-                        // Forms\Components\TextInput::make('city')
-                        //     ->maxLength(255),
-                        // Forms\Components\TextInput::make('state')
-                        //     ->maxLength(255),
-                        // Forms\Components\TextInput::make('country')
-                        //     ->maxLength(255),
-                        // Forms\Components\TextInput::make('postal_code')
-                        //     ->maxLength(255),
                     ])->columns(4),
 
                 Forms\Components\Section::make('Additional Information')
@@ -82,6 +82,10 @@ class ClientResource extends Resource
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('email')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('auth_email')
+                    ->placeholder('N/A')
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('phone')
