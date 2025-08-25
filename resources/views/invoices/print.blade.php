@@ -399,11 +399,11 @@
         <p>{{ $client->phone }}</p>
     </div>
 
-    @if(!$containsProducts)
+    @if($invoice->is_recurring)
         <div style="margin-top: 10px;margin-bottom: 10px">
             <p>Dear Sir/Madam</p>
             <p>We appreciate your continued business with Shakir Dynamics Ltd. Please find below the billing details for
-                the internet services provided to you for then <b> month of {{$invoice->issue_date->format('F')}}</b>
+                the internet services provided to you for the <b> month of {{$invoice->issue_date->format('F')}}</b>
             </p>
         </div>
     @endif
