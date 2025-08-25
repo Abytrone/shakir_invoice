@@ -11,8 +11,10 @@ class InvoiceController extends Controller
 {
     public function print(Invoice $invoice)
     {
+        $invoice->load('items.product');
+
         $containsProducts = $invoice->items->contains(function ($item) {
-            return $item->type === 'product';
+            return $item->product && $item->product->type === 'product';
         });
 
         $pdf = PDF::loadView('invoices.print', [
