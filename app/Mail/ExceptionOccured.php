@@ -8,17 +8,27 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use Throwable;
 
 class ExceptionOccured extends Mailable
 {
     use Queueable, SerializesModels;
+    public array $content;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(public array $content)
+    public function __construct(public Throwable $exception)
     {
-        //
+        $this->content = [
+            'message' => $exception->getMessage(),
+            'file' => $exception->getFile(),
+            'line' => $exception->getLine(),
+            'trace' => $exception->getTrace(),
+            'url' => request()->url(),
+            'body' => request()->all(),
+            'ip' => request()->ip(),
+        ];
     }
 
     /**
@@ -27,7 +37,7 @@ class ExceptionOccured extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Exception Occured',
+            subject: 'Exception Occurred',
         );
     }
 

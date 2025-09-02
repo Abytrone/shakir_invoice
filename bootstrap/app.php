@@ -4,7 +4,6 @@ use App\Mail\ExceptionOccured;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Symfony\Component\HttpFoundation\Response;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -14,36 +13,21 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        //
+        $middleware->validateCsrfTokens(except: [
+            '/api/payments/webhook',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-
-        if (app()->environment('production')) {
-            $exceptions->reportable(static function (Throwable $exception) {
-                report($exception);
+        $exceptions->report(static function (Throwable $exception) {
+            if (app()->isProduction()) {
                 try {
-                    $content['message'] = $exception->getMessage();
 
-                    $content['file'] = $exception->getFile();
-
-                    $content['line'] = $exception->getLine();
-
-                    $content['trace'] = $exception->getTrace();
-
-                    $content['url'] = request()->url();
-
-                    $content['body'] = request()->all();
-
-                    $content['ip'] = request()->ip();
-
-
-                    Mail::to('mahmudsheikh25@gmail.com')->send(new ExceptionOccured($content));
-
+                    Mail::to('mahmudsheikh25@gmail.com')->send(new ExceptionOccured($exception));
 
                 } catch (Throwable $exception) {
-                    Log::error('custom',[$exception]);
+                    Log::error('custom', [$exception]);
 
                 }
-            });
-        }
+            }
+        });
     })->create();

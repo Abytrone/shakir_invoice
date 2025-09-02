@@ -1,6 +1,6 @@
 <?php
 
-namespace Console\Commands;
+namespace Tests\Feature\Console\Commands;
 
 
 use App\Console\Commands\AutoBillClient;
@@ -8,12 +8,8 @@ use App\Constants\InvoiceStatus;
 use App\Models\Client;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
-use App\Services\PaystackService;
-use Carbon\Carbon;
 use Http;
-use Illuminate\Http\Client\Response;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class AutoBillClientTest extends TestCase
