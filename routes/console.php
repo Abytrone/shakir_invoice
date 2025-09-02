@@ -20,7 +20,7 @@ Schedule::command('invoice:update-invoice-over-due-status')
 Schedule::command('telescope:prune --hours=48')->daily();
 
 Schedule::command('app:scheduler-is-still-running')
-    ->daily()
+    ->twiceDaily(0, 12)
     ->appendOutputTo(storage_path('logs/scheduler-is-still-running.log'));
 
 
