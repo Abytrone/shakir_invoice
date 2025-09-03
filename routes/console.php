@@ -1,11 +1,12 @@
 <?php
 
+use App\Console\Commands\GenerateRecurringInvoices;
 use App\Console\Commands\RecurringInvoiceReminder;
 use App\Console\Commands\SchedulerIsStillRunning;
 use App\Console\Commands\UpdateInvoiceOverDueStatus;
 use App\Console\Commands\UpdateInvoiceStatus;
 
-Schedule::command(\App\Console\Commands\GenerateRecurringInvoices::class)
+Schedule::command(GenerateRecurringInvoices::class)
     ->daily()
     ->appendOutputTo(storage_path('logs/recurring-invoices.log'));
 
@@ -29,6 +30,6 @@ Schedule::command(SchedulerIsStillRunning::class)
     ->appendOutputTo(storage_path('logs/scheduler-is-still-running.log'));
 
 
-Schedule::command('app:auto-bill-client')
+Schedule::command(\App\Console\Commands\AutoBillClient::class)
     ->daily()
     ->appendOutputTo(storage_path('logs/app:auto-bill-client.log'));
