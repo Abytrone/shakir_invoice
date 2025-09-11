@@ -37,5 +37,5 @@ Schedule::command(AutoBillClient::class)
     ->dailyAt('00:00')
     ->appendOutputTo(storage_path('logs/auto-bill-client.log'));
 
-Schedule::command(LogToFile::class)
-    ->everyMinute();
+//Schedule::command(LogToFile::class)
+//    ->everyMinute();
