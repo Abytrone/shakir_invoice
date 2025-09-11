@@ -28,8 +28,8 @@ Schedule::command( UpdateInvoiceOverDueStatus::class)
 Schedule::command('telescope:prune --hours=48')->dailyAt('00:00');
 
 Schedule::command(SchedulerIsStillRunning::class)
-    ->everyFiveSeconds()
-//    ->dailyAt('00:00')
+//    ->everyFiveSeconds()
+    ->dailyAt('00:00')
     ->appendOutputTo(storage_path('logs/scheduler-is-still-running.log'));
 
 
