@@ -29,7 +29,7 @@ Schedule::command('telescope:prune --hours=48')->dailyAt('00:00');
 
 Schedule::command(SchedulerIsStillRunning::class)
 //    ->everyFiveSeconds()
-    ->dailyAt('00:00')
+    ->dailyAt(now()->addMinutes(5)->format('H:i'))
     ->appendOutputTo(storage_path('logs/scheduler-is-still-running.log'));
 
 
