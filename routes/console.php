@@ -35,7 +35,7 @@ Schedule::command('telescope:prune --hours=48')
     ->appendOutputTo(storage_path('logs/scheduler-is-still-running.log'));
 
 Schedule::command(SchedulerIsStillRunning::class)
-    ->dailyAt(now()->addMinutes(5)->format('H:i'))
+    ->dailyAt('08:15')
     ->timeZone('Africa/Accra')
     ->appendOutputTo(storage_path('logs/scheduler-is-still-running.log'));
 
