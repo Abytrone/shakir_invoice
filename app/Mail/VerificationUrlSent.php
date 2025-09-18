@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Models\Client;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -13,12 +14,14 @@ class VerificationUrlSent extends Mailable
 {
     use Queueable, SerializesModels;
 
+    public Client $client;
+
     /**
      * Create a new message instance.
      */
-    public function __construct(public string $email,public string $url)
+    public function __construct(public string $email, public string $url)
     {
-        //
+       $this->client = Client::query()->where('auth_email', $email)->firstOrFail();
     }
 
     /**
