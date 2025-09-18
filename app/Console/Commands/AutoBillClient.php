@@ -51,6 +51,14 @@ class AutoBillClient extends Command
                         continue;
                     }
                     $billedCount++;
+                    $invoice->payments()->create([
+                        'amount' => $invoice->total,
+                        'payment_date' => now(),
+                        'payment_method' => 'credit_card',
+                        'note' => 'Auto billed via Paystack',
+                        'reference_number'=>$data['data']['reference'],
+                        'status'=>'completed',
+                    ]);
                 }
                 //todo: send email notification
             }
