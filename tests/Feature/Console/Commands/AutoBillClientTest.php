@@ -61,7 +61,7 @@ class AutoBillClientTest extends TestCase
             'unit_price' => 10
         ]);
 
-         Invoice::factory()->create([
+        Invoice::factory()->create([
             'tax_rate' => 0,
             'discount_rate' => 0,
             'client_id' => $client->id,
@@ -75,15 +75,16 @@ class AutoBillClientTest extends TestCase
             'unit_price' => 10
         ]);
 
+        \Http::fake([
+            'https://api.paystack.co/transaction/verify/*' => Http::response($this->getFakeVerifyResponse($invoice->invoice_number)),
+            'https://api.paystack.co/transaction/charge_authorization' => Http::response($this->fakeChargeResponse),
+        ])->withHeaders([
+            'Authorization' => 'Bearer 123',
+        ]);
         $this->artisan(AutoBillClient::class)
             ->expectsOutput('Starting auto bill client...')
             ->expectsOutput('1 has been billed...')
             ->assertExitCode(0);
-
-        \Http::fake([
-            'https://api.paystack.co/transaction/verify/*' => Http::response($this->getFakeVerifyResponse($invoice->invoice_number)),
-            'https://api.paystack.co/transaction/charge_authorization' => Http::response($this->fakeChargeResponse),
-        ]);
 
         $this->getJson(route('payments.process', ['reference' => 're4lyvq3s3']));
 
@@ -163,9 +164,7 @@ class AutoBillClientTest extends TestCase
     public function getFakeVerifyResponse(?string $invoiceNumber = null, bool $withAuthEmail = false): array
     {
         $customFields = [
-            [
-
-            ],
+            [ ],
             [
                 "value" => $invoiceNumber,
                 "display_name" => "Invoice Number",
@@ -173,7 +172,7 @@ class AutoBillClientTest extends TestCase
             ],
         ];
 
-        if($withAuthEmail){
+        if ($withAuthEmail) {
             $customFields[] = [
                 'display_name' => 'Auth Email',
                 'variable_name' => 'auth_email',

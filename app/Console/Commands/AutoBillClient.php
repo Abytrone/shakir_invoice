@@ -41,27 +41,32 @@ class AutoBillClient extends Command
 
         $billedCount = 0;
         foreach ($authBillInvoice as $invoice) {
-            if ($invoice->isOverdue()) {
-                $res = json_decode($invoice->client->auth_res);
-                if ($invoice->client->shouldBeBillAutomatically()) {
-                    $res = $paystackService->chargeAuthorization($invoice->client->auth_email, $res->authorization_code, $invoice->total);
-                    $data = $res->json();
-                    if ($data['data']['status'] == 'failed') {
-                        $this->error("Failed to bill client {$invoice->client->name} for invoice #{$invoice->id}");
-                        continue;
-                    }
-                    $billedCount++;
-                    $invoice->payments()->create([
-                        'amount' => $invoice->total,
-                        'payment_date' => now(),
-                        'payment_method' => 'credit_card',
-                        'note' => 'Auto billed via Paystack',
-                        'reference_number'=>$data['data']['reference'],
-                        'status'=>'completed',
-                    ]);
-                }
-                //todo: send email notification
+            if (!$invoice->isOverdue()) {
+                continue;
             }
+
+            if (!$invoice->client->shouldBeBillAutomatically()) {
+                continue;
+            }
+
+            $res = json_decode($invoice->client->auth_res);
+
+            $res = $paystackService->chargeAuthorization($invoice->client->auth_email, $res->authorization_code, $invoice->total);
+            $data = $res->json();
+            if ($data['data']['status'] == 'failed') {
+                $this->error("Failed to bill client {$invoice->client->name} for invoice #{$invoice->id}");
+                continue;
+            }
+            $billedCount++;
+
+            $verify = $paystackService->verify($data['data']['reference']);
+
+            if(!$verify){
+                $this->error("Failed to verify payment for client {$invoice->client->name} for invoice #{$invoice->id}");
+            }
+
+            //todo: send email notification
+
         }
 
         $this->info("$billedCount has been billed...");
