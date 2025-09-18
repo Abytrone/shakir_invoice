@@ -13,7 +13,6 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Model;
 
 class AuthPaymentResource extends Resource
 {
@@ -78,9 +77,11 @@ class AuthPaymentResource extends Resource
             ])
             ->actions([
                 Tables\Actions\Action::make('verify')
+                    ->hidden(function (AuthPayment $record) {
+                        return $record->status === PayStackTransactionStatus::SUCCESS;
+                    })
                     ->requiresConfirmation()
-                    ->action(function (Model $record) {
-
+                    ->action(function (AuthPayment $record) {
                         $ref = $record->reference;
                         $authService = app(PaystackService::class);
                         $response = $authService->verify($ref);
