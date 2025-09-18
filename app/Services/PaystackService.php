@@ -2,13 +2,42 @@
 
 namespace App\Services;
 
-use GuzzleHttp\Promise\PromiseInterface;
 use Http;
-use Illuminate\Http\Client\Response;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class PaystackService
 {
+    public function getAuthorizationUrl(string $email, string $phone)
+    {
+
+        $data = [
+            'email' => $email,
+            'mobile' => $phone,
+            'amount' => 100, // 1 GHS in pesewas
+            'metadata' => [
+                'custom_fields' => [
+                    [
+                        'display_name' => 'Auth Email',
+                        'variable_name' => 'auth_email',
+                        'value' => $email,
+                    ],
+                ],
+            ],
+        ];
+
+        $response = \Illuminate\Support\Facades\Http::withHeaders([
+            'Authorization' => 'Bearer ' . config('services.paystack.live_secret_key'),
+        ])->post('https://api.paystack.co/transaction/initialize', $data);
+
+        $res = json_decode($response, true);
+        if (!$res['status']) {
+            return null;
+        }
+
+        return $res['data'];
+
+    }
 
     public function chargeAuthorization($email, $authorizationCode, $amount)
     {
