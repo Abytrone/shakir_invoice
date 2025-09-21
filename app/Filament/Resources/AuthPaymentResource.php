@@ -33,6 +33,13 @@ class AuthPaymentResource extends Resource
 
                 Forms\Components\TextInput::make('auth_phone')
                     ->label('Phone Number')
+                    ->required(),
+
+                Forms\Components\TextInput::make('amount')
+                    ->label('Amount')
+                    ->numeric()
+                    ->default(1)
+                    ->minValue(1)
                     ->required()
             ]);
     }

@@ -4,6 +4,7 @@
 # Hello {{ $client->name }},
 
 Please click on the link below to authorize your card for automatic billing.
+The amount to be authorized is {{ $amount }} but subsequently, only the actual invoice amount will be charged.
 
 
 <x-mail::button color="primary" :url="$url">

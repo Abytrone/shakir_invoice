@@ -19,7 +19,7 @@ class VerificationUrlSent extends Mailable
     /**
      * Create a new message instance.
      */
-    public function __construct(public string $email, public string $url)
+    public function __construct(public string $email, public string $url, public float $amount)
     {
        $this->client = Client::query()->where('auth_email', $email)->firstOrFail();
     }

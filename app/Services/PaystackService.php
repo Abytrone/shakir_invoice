@@ -8,13 +8,13 @@ use Illuminate\Support\Facades\Log;
 
 class PaystackService
 {
-    public function getAuthorizationUrl(string $email, string $phone)
+    public function getAuthorizationUrl(string $email, string $phone, float $amount)
     {
 
         $data = [
             'email' => $email,
             'mobile' => $phone,
-            'amount' => 100, // 1 GHS in pesewas
+            'amount' => $amount * 100,
             'metadata' => [
                 'custom_fields' => [
                     [
