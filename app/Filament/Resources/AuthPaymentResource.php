@@ -26,7 +26,7 @@ class AuthPaymentResource extends Resource
             ->schema([
                 Forms\Components\Select::make('auth_email')
                     ->label('Client')
-                    ->relationship('client', 'email', function ($query) {
+                    ->relationship('client', 'auth_email', function ($query) {
                         return $query->where('auth_email', '!=', null);
                     })
                     ->required(),
