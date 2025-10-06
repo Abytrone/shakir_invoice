@@ -315,7 +315,7 @@
             </tr>
             <tr>
                 <td class="label">Tax ({{ $invoice->tax_rate }}%):</td>
-                <td class="value">GHC {{ number_format($invoice->tax_amount, 2) }}</td>
+                <td class="value">GHC {{ number_format($invoice->tax, 2) }}</td>
             </tr>
             <tr>
                 <td class="label">Total:</td>
