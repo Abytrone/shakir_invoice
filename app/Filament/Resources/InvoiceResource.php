@@ -265,9 +265,12 @@ class InvoiceResource extends Resource
             $subtotal += $singleProductTotals['subtotal'];
         }
 
-        $taxAmount = $subtotal * (($get('tax_rate') ?? 0) / 100);
 
-        $discountAmount = $subtotal * (($get('discount_rate') ?? 0) / 100);
+        $tax_rate = (float)$get('tax_rate');
+        $taxAmount = $subtotal * (($tax_rate) / 100);
+
+        $discount_rate = (float)$get('discount_rate');
+        $discountAmount = $subtotal * (($discount_rate) / 100);
 
         $grandTotal = $subtotal + $taxAmount - $discountAmount;
         // Log::info('', [round($subtotal, 2), round($grandTotal, 2)]);
