@@ -27,9 +27,9 @@ class TestAutoBilling extends Command
     public function handle(PaystackService $paystackService): void
     {
         $res = $paystackService->chargeAuthorization(
-            'shakirdynamicsltd@gmail.com',
-            'AUTH_7txoafgsgg',
-            0.1
+            'wumpini6970@gmail.com',
+            'AUTH_ozyf7v1e5c----',
+            4000
         );
 
         dd($res->json()['status']);
