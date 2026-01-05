@@ -31,9 +31,17 @@ class InvoiceResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Section::make('Basic Information')
+                    ->icon('heroicon-o-information-circle')
                     ->schema([
+                        Forms\Components\TextInput::make('invoice_number')
+                            ->label('Invoice Number')
+                            ->disabled()
+                            ->visible(fn(string $context): bool => $context === 'edit')
+                            ->dehydrated(false) // Don't try to save this field
+                            ->columnSpanFull(),
+
                         Forms\Components\Select::make('client_id')
-                            ->relationship('client', 'company_name')
+                            ->relationship('client', 'name')
                             ->searchable()
                             ->preload()
                             ->required()
@@ -52,7 +60,7 @@ class InvoiceResource extends Resource
                             ->default(now()->addDays(30))
                             ->label('Due Date')
                             ->helperText('The date when the invoice payment is due')
-                            ->minDate(fn (callable $get) => $get('issue_date')),
+                            ->minDate(fn(callable $get) => $get('issue_date')),
 
                         Forms\Components\Select::make('status')
                             ->options([
@@ -70,6 +78,7 @@ class InvoiceResource extends Resource
                     ])->columns(4),
 
                 Forms\Components\Section::make('Invoice Items')
+                    ->icon('heroicon-o-shopping-cart')
                     ->schema([
                         Forms\Components\Repeater::make('items')
                             ->relationship()
@@ -85,9 +94,10 @@ class InvoiceResource extends Resource
                                             ->label('Product')
                                             ->helperText('Select a product to add to the invoice')
                                             ->live()
+                                            ->getOptionLabelFromRecordUsing(fn(Product $record) => $record->name)
                                             ->disableOptionWhen(function ($value, $state, Get $get) {
                                                 return collect($get('../*.product_id'))
-                                                    ->reject(fn ($id) => $id == $state)
+                                                    ->reject(fn($id) => $id == $state)
                                                     ->filter()
                                                     ->contains($value);
                                             })
@@ -126,6 +136,7 @@ class InvoiceResource extends Resource
                     }),
 
                 Forms\Components\Section::make('Invoice Summary')
+                    ->icon('heroicon-o-currency-dollar')
                     ->schema([
                         // First row: Tax and Discount
                         Forms\Components\Grid::make(4)
@@ -201,6 +212,7 @@ class InvoiceResource extends Resource
                     ]),
 
                 Forms\Components\Section::make('Additional Information')
+                    ->icon('heroicon-o-document-text')
                     ->schema([
                         Forms\Components\Textarea::make('notes')
                             ->rows(3)
@@ -216,6 +228,7 @@ class InvoiceResource extends Resource
                     ])->columns(2),
 
                 Forms\Components\Section::make('Recurring Settings')
+                    ->icon('heroicon-o-arrow-path')
                     ->schema([
                         Forms\Components\Toggle::make('is_recurring')
                             ->label('Enable Recurring Invoice')
@@ -227,8 +240,8 @@ class InvoiceResource extends Resource
                                 'monthly' => 'Monthly',
                                 'yearly' => 'Yearly',
                             ])
-                            ->visible(fn (Get $get) => $get('is_recurring'))
-                            ->required(fn (Get $get) => $get('is_recurring'))
+                            ->visible(fn(Get $get) => $get('is_recurring'))
+                            ->required(fn(Get $get) => $get('is_recurring'))
                             ->label('Frequency')
                             ->helperText('How often should the invoice be generated'),
 
@@ -249,8 +262,8 @@ class InvoiceResource extends Resource
     protected static function updateTotals(Get $get, Set $set): void
     {
         $selectedProducts = collect($get('items'))
-            ->filter(fn ($item) => ! empty($item['product_id'])
-                && ! empty($item['quantity']));
+            ->filter(fn($item) => !empty($item['product_id'])
+                && !empty($item['quantity']));
 
         $subtotal = 0;
 
@@ -264,9 +277,12 @@ class InvoiceResource extends Resource
             $subtotal += $singleProductTotals['subtotal'];
         }
 
-        $taxAmount = $subtotal * (($get('tax_rate') ?? 0) / 100);
 
-        $discountAmount = $subtotal * (($get('discount_rate') ?? 0) / 100);
+        $tax_rate = (float) $get('tax_rate');
+        $taxAmount = $subtotal * (($tax_rate) / 100);
+
+        $discount_rate = (float) $get('discount_rate');
+        $discountAmount = $subtotal * (($discount_rate) / 100);
 
         $grandTotal = $subtotal + $taxAmount - $discountAmount;
         // Log::info('', [round($subtotal, 2), round($grandTotal, 2)]);
@@ -296,38 +312,59 @@ class InvoiceResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('created_at', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('invoice_number')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->weight('bold')
+                    ->color('primary')
+                    ->copyable(),
 
-                Tables\Columns\TextColumn::make('client.company_name')
+                Tables\Columns\TextColumn::make('client.name')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->description(fn(Invoice $record) => $record->client->email)
+                    ->icon('heroicon-m-user'),
 
                 Tables\Columns\TextColumn::make('issue_date')
-                    ->date('M d, Y h:i A')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->sortable(),
+                    ->date('M d, Y')
+                    ->sortable()
+                    ->icon('heroicon-m-calendar'),
 
                 Tables\Columns\TextColumn::make('due_date')
-                    ->date('M d, Y h:i A')
+                    ->date('M d, Y')
                     ->toggleable(isToggledHiddenByDefault: true)
-                    ->sortable(),
+                    ->sortable()
+                    ->color(fn(Invoice $record) => $record->due_date < now() && $record->status !== 'paid' ? 'danger' : 'gray'),
 
                 Tables\Columns\TextColumn::make('total')
-                    ->label('Total (GHS)')
+                    ->label('Total')
                     ->sortable()
-                    ->numeric(),
+                    ->money('GHS')
+                    ->weight('bold'),
 
                 Tables\Columns\TextColumn::make('amount_paid')
-                    ->label('Paid Amount (GHS)')
+                    ->label('Paid')
                     ->sortable()
-                    ->numeric(),
+                    ->money('GHS')
+                    ->toggleable(),
+
+                Tables\Columns\TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->icon(fn(string $state): string => match ($state) {
+                        'draft' => 'heroicon-m-pencil-square',
+                        'sent' => 'heroicon-m-paper-airplane',
+                        'paid' => 'heroicon-m-check-circle',
+                        'overdue' => 'heroicon-m-exclamation-circle',
+                        'partial' => 'heroicon-m-banknotes',
+                    })
+                    ->color(fn(string $state): string => match ($state) {
                         'draft' => 'gray',
                         'sent' => 'info',
                         'paid' => 'success',
@@ -337,11 +374,9 @@ class InvoiceResource extends Resource
 
                 Tables\Columns\IconColumn::make('is_recurring')
                     ->boolean()
-                    ->label('Recurring'),
-                Tables\Columns\TextColumn::make('next_recurring_date')
-                    ->label('Next Recurring')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->date('M d, Y h:i A'),
+                    ->label('Recurring')
+                    ->trueIcon('heroicon-o-arrow-path')
+                    ->falseIcon('heroicon-o-x-mark'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
@@ -352,40 +387,125 @@ class InvoiceResource extends Resource
                         'overdue' => 'Overdue',
                         'partial' => 'Partial',
                     ]),
+                Tables\Filters\Filter::make('created_at')
+                    ->form([
+                        Forms\Components\DatePicker::make('created_from')->label('Created From'),
+                        Forms\Components\DatePicker::make('created_until')->label('Created Until'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['created_from'],
+                                fn(Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
+                            )
+                            ->when(
+                                $data['created_until'],
+                                fn(Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
+                            );
+                    }),
                 Tables\Filters\Filter::make('is_recurring')
-                    ->query(fn (Builder $query): Builder => $query->where('is_recurring', true)),
+                    ->query(fn(Builder $query): Builder => $query->where('is_recurring', true))
+                    ->label('Recurring Only'),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
-                    // Tables\Actions\ViewAction::make()
-                    //     ->icon('heroicon-o-eye'),
-
                     Tables\Actions\Action::make('print')
                         ->icon('heroicon-o-printer')
-                        ->url(fn (Invoice $record): string => route('invoices.print', $record))
+                        ->url(fn(Invoice $record): string => route('invoices.print', $record))
                         ->openUrlInNewTab(),
 
                     Tables\Actions\Action::make('download')
                         ->icon('heroicon-o-arrow-down-tray')
-                        ->url(fn (Invoice $record): string => URL::signedRoute('invoices.download', $record))
+                        ->url(fn(Invoice $record): string => URL::signedRoute('invoices.download', $record))
                         ->openUrlInNewTab(),
 
                     Tables\Actions\Action::make('send')
-                        ->label(fn (Invoice $record) => $record->status == 'draft' ? 'Send' : 'Resend')
+                        ->label(fn(Invoice $record) => $record->status == 'draft' ? 'Send' : 'Resend')
                         ->icon('heroicon-o-paper-airplane')
                         ->action(function (Invoice $record) {
                             $record->update(['status' => 'sent']);
-                            Mail::to($record->client->email)
-                                ->send(new InvoiceSent($record));
+
+                            if ($record->client->hasEmail()) {
+                                Mail::to($record->client->email)
+                                    ->send(new InvoiceSent($record));
+                            }
+
+                            \Filament\Notifications\Notification::make()
+                                ->title('Invoice Sent')
+                                ->success()
+                                ->send();
+
                         })
                         ->requiresConfirmation(),
 
-                    Tables\Actions\EditAction::make(),
+                    Tables\Actions\Action::make('replicate')
+                        ->label('Replicate Next Month')
+                        ->icon('heroicon-o-document-duplicate')
+                        ->color('warning')
+                        ->action(function (Invoice $record) {
+                            $newInvoice = $record->replicate();
+                            $newInvoice->invoice_number = null; // Trigger observer to generate new number
+                            $newInvoice->status = 'draft';
+                            $newInvoice->issue_date = $record->issue_date ? $record->issue_date->addMonth() : now();
+                            $newInvoice->due_date = $record->due_date ? $record->due_date->addMonth() : now()->addDays(30);
+                            $newInvoice->is_recurring = false; // Manual replication, so disable auto-recurring on the copy
+                            $newInvoice->save();
+
+                            foreach ($record->items as $item) {
+                                $newItem = $item->replicate();
+                                $newItem->invoice_id = $newInvoice->id;
+                                $newItem->save();
+                            }
+
+                            \Filament\Notifications\Notification::make()
+                                ->title('Invoice Replicated')
+                                ->body('New invoice created for next month: ' . $newInvoice->invoice_number)
+                                ->success()
+                                ->send();
+                        })
+                        ->requiresConfirmation()
+                        ->modalHeading('Replicate Invoice for Next Month')
+                        ->modalDescription('This will create a draft invoice for the next month with the same items. Are you sure?'),
+
+                    Tables\Actions\EditAction::make()->color('primary'),
                     Tables\Actions\DeleteAction::make(),
-                ]),
+                ])->icon('heroicon-m-ellipsis-vertical')->tooltip('Actions'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\BulkAction::make('replicate_bulk')
+                        ->label('Generate Next Month Bills')
+                        ->icon('heroicon-o-document-duplicate')
+                        ->color('warning')
+                        ->action(function (\Illuminate\Database\Eloquent\Collection $records) {
+                            $count = 0;
+                            foreach ($records as $record) {
+                                $newInvoice = $record->replicate();
+                                $newInvoice->invoice_number = null;
+                                $newInvoice->status = 'draft';
+                                $newInvoice->issue_date = $record->issue_date ? $record->issue_date->addMonth() : now();
+                                $newInvoice->due_date = $record->due_date ? $record->due_date->addMonth() : now()->addDays(30);
+                                $newInvoice->is_recurring = false;
+                                $newInvoice->save();
+
+                                foreach ($record->items as $item) {
+                                    $newItem = $item->replicate();
+                                    $newItem->invoice_id = $newInvoice->id;
+                                    $newItem->save();
+                                }
+                                $count++;
+                            }
+
+                            \Filament\Notifications\Notification::make()
+                                ->title('Bulk Replication Complete')
+                                ->body("$count invoices have been generated for the upcoming month.")
+                                ->success()
+                                ->send();
+                        })
+                        ->requiresConfirmation()
+                        ->modalHeading('Generate Next Month Bills for Selected')
+                        ->modalDescription('This will create new draft invoices for all selected records, set to next month dates. Proceed?')
+                        ->deselectRecordsAfterCompletion(),
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
