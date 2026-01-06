@@ -23,7 +23,9 @@ class TestMail extends Command
 
     public function handle(): void
     {
+        $this->info('Sending test mail...');
         Mail::to('mahmudsheikh25@gmail.com')
             ->queue(new \App\Mail\TestMail);
+        $this->info('Test mail sent successfully!');
     }
 }

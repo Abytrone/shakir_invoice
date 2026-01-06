@@ -24,8 +24,8 @@ class InvoiceSent extends Mailable // implements ShouldQueue
     public function __construct(public Invoice $invoice)
     {
         $this->invoice->load(['client', 'items']);
-        $this->invoiceDownloadUrl = URL::signedRoute('invoice.download', ['invoice' => $invoice]);
-        $this->invoicePaymentInitUrl = URL::signedRoute('payments.initialize', ['invoice' => $invoice]);
+        $this->invoiceDownloadUrl = URL::signedRoute('invoices.download', ['invoice' => $this->invoice]);
+        $this->invoicePaymentInitUrl = URL::signedRoute('payments.initialize', ['invoice' => $this->invoice]);
     }
 
     /**

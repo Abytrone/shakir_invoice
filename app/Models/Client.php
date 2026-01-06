@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,6 +14,15 @@ class Client extends Model
 
     protected $guarded = [];
 
+    public function hasEmail(): bool
+    {
+        return $this->email !== null && $this->email !== '';
+    }
+
+    public function shouldBeBillAutomatically(): bool
+    {
+        return $this->auth_email !== null && $this->authemail !== '';
+    }
     public function quotes(): HasMany
     {
         return $this->hasMany(Quote::class);

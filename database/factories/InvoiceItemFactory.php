@@ -15,8 +15,8 @@ class InvoiceItemFactory extends Factory
     public function definition(): array
     {
         return [
-            'quantity' => $this->faker->randomNumber(),
-            'unit_price' => $this->faker->randomFloat(2, 1, 1000),
+            'quantity' => 1,
+            'unit_price' => $this->faker->randomFloat(2, 1, 100),
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),
             'invoice_id' => Invoice::factory(),

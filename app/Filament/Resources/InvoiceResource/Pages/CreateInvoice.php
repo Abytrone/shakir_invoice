@@ -18,8 +18,11 @@ class CreateInvoice extends CreateRecord
     {
         $this->record->load('client');
         if ($this->record->isSent()) {
-            Mail::to($this->record->client->email)
-                ->send(new InvoiceSent($this->record));
+            if ($this->record->client->hasEmail()){
+                Mail::to($this->record->client->email)
+                    ->send(new InvoiceSent($this->record));
+            }
+
         }
     }
 }

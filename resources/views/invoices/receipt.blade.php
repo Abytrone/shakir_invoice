@@ -254,7 +254,10 @@
                 @endif
 
                 <p class="text-sm mb-4"><span class="meta-title">DATE: </span>{{ $payment->created_at->format('d-m-Y') }}</p>
-                <p class="text-sm mb-4"><span class="meta-title">PAYMENT METHOD: </span>{{ $payment->pluck('payment_method')->join(', ') }}</p>
+                <p class="text-sm mb-4">
+                    <span class="meta-title">PAYMENT METHOD: </span>
+                    {{  (['bank_transfer'=>'Bank Transfer', 'mobile_money'=>'Mobile Money', 'cash'=>'Cash', 'other'=>'Other'][$payment->payment_method]) ?? 'N/A' }}
+                </p>
 
                 @if($invoice->is_recurring)
                     <p class="text-sm mb-4"><span class="meta-title">NEXT BILL: </span>{{ $invoice->next_recurring_date }}</p>
@@ -264,7 +267,7 @@
 
         <div class="bill-to">
             <h2>RECEIVED FROM:</h2>
-            <p>{{ $client->company_name }}</p>
+            <p>{{ $client->name }}</p>
             <p>{{ $client->address }}</p>
             <p>{{ $client->email }}</p>
             <p>{{ $client->phone }}</p>
@@ -312,7 +315,7 @@
             </tr>
             <tr>
                 <td class="label">Tax ({{ $invoice->tax_rate }}%):</td>
-                <td class="value">GHC {{ number_format($invoice->tax_amount, 2) }}</td>
+                <td class="value">GHC {{ number_format($invoice->tax, 2) }}</td>
             </tr>
             <tr>
                 <td class="label">Total:</td>

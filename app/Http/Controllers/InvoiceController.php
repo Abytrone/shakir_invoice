@@ -11,10 +11,17 @@ class InvoiceController extends Controller
 {
     public function print(Invoice $invoice)
     {
+        $invoice->load('items.product');
+
+        $containsProducts = $invoice->items->contains(function ($item) {
+            return $item->product && $item->product->type === 'product';
+        });
+
         $pdf = PDF::loadView('invoices.print', [
             'invoice' => $invoice,
             'client' => $invoice->client,
             'items' => $invoice->items,
+            'containsProducts' => $containsProducts,
         ]);
 
         return $pdf->stream("Invoice-{$invoice->invoice_number}.pdf");
@@ -22,10 +29,15 @@ class InvoiceController extends Controller
 
     public function download(Invoice $invoice)
     {
+        $containsProducts = $invoice->items->contains(function ($item) {
+            return $item->type === 'product';
+        });
         $pdf = PDF::loadView('invoices.print', [
             'invoice' => $invoice,
             'client' => $invoice->client,
             'items' => $invoice->items,
+            'containsProducts' => $containsProducts,
+
         ]);
 
         return $pdf->download("invoice-{$invoice->invoice_number}.pdf");

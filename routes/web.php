@@ -9,6 +9,12 @@ use Illuminate\Support\Facades\Route;
 //     return view('welcome');
 // });
 
+Route::get('schedule-tasks', function(){
+    \Log::info('Scheduled tasks are running');
+});
+
+
+
 Route::get('signed-url', function () {
 //    route('invoices.download', $invoice)
     return \Illuminate\Support\Facades\URL::signedRoute('invoices.download', Invoice::first());
@@ -22,9 +28,15 @@ Route::redirect('/laravel/login', '/admin/login')->name('login');
 
 Route::redirect('/', '/admin');
 
+//Route::post('/payments/webhook', [PaymentController::class, 'handleWebhook'])->name('payments.webhook');
+Route::get('/payments/process', [PaymentController::class, 'process'])->name('payments.process');
+Route::get('/payments/auth', [PaymentController::class, 'auth'])
+    ->name('payments.auth');
 Route::middleware('signed')->group(function () {
     Route::get('/invoices/{invoice:invoice_uuid}/download', [InvoiceController::class, 'download'])
         ->name('invoices.download');
+
+
 
     Route::get('/payments/{invoice:invoice_uuid}', [PaymentController::class, 'initialize'])
         ->name('payments.initialize');
@@ -36,7 +48,6 @@ Route::middleware('signed')->group(function () {
 Route::get('/invoices/{invoice:invoice_uuid}/print', [InvoiceController::class, 'print'])->name('invoices.print');
 
 Route::post('/invoices/{invoice:invoice_uuid}/send', [InvoiceController::class, 'send'])->name('invoices.send');
-Route::get('/payments/process', [PaymentController::class, 'process'])->name('payments.process');
 
 Route::get('preview-invoice/{invoice}', function () {
     return (new \App\Mail\InvoiceSent(Invoice::with('client')->first()))->render();
