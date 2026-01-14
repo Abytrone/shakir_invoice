@@ -26,7 +26,9 @@ class Invoice extends Model
         'recurring_start_date' => 'date',
         'is_recurring' => 'boolean',
         'tax_rate' => 'decimal:2',
+        'tax_amount' => 'decimal:2',
         'discount_rate' => 'decimal:2',
+        'discount_amount' => 'decimal:2',
         'has_next' => 'boolean',
     ];
 
@@ -79,6 +81,9 @@ class Invoice extends Model
     {
         return Attribute::make(
             get: function ($value, array $attributes) {
+                if (($attributes['discount_type'] ?? 'percent') === 'fixed') {
+                    return (float) ($attributes['discount_amount'] ?? 0);
+                }
                 return $this->items->sum('total') * ($attributes['discount_rate'] / 100);
             },
             set: fn($value) => $value,
@@ -89,6 +94,9 @@ class Invoice extends Model
     {
         return Attribute::make(
             get: function ($value, array $attributes) {
+                if (($attributes['tax_type'] ?? 'percent') === 'fixed') {
+                    return (float) ($attributes['tax_amount'] ?? 0);
+                }
                 return $this->items->sum('total') * ($attributes['tax_rate'] / 100);
             },
             set: fn($value) => $value,
@@ -101,9 +109,17 @@ class Invoice extends Model
             get: function ($value, array $attributes) {
                 $itemsSum = $this->items->sum('total');
 
-                $taxAmount = $attributes['tax_rate'] / 100 * $itemsSum;
+                if (($attributes['tax_type'] ?? 'percent') === 'fixed') {
+                    $taxAmount = (float) ($attributes['tax_amount'] ?? 0);
+                } else {
+                    $taxAmount = ($attributes['tax_rate'] ?? 0) / 100 * $itemsSum;
+                }
 
-                $discountAmount = $attributes['discount_rate'] / 100 * $itemsSum;
+                if (($attributes['discount_type'] ?? 'percent') === 'fixed') {
+                    $discountAmount = (float) ($attributes['discount_amount'] ?? 0);
+                } else {
+                    $discountAmount = ($attributes['discount_rate'] ?? 0) / 100 * $itemsSum;
+                }
 
                 $result = $itemsSum + $taxAmount - $discountAmount;
 

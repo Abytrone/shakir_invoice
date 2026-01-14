@@ -16,7 +16,7 @@ Route::get('schedule-tasks', function(){
 
 
 Route::get('signed-url', function () {
-//    route('invoices.download', $invoice)
+    //    route('invoices.download', $invoice)
     return \Illuminate\Support\Facades\URL::signedRoute('invoices.download', Invoice::first());
 })->name('throw');
 
@@ -49,8 +49,8 @@ Route::get('/invoices/{invoice:invoice_uuid}/print', [InvoiceController::class, 
 
 Route::post('/invoices/{invoice:invoice_uuid}/send', [InvoiceController::class, 'send'])->name('invoices.send');
 
-Route::get('preview-invoice/{invoice}', function () {
-    return (new \App\Mail\InvoiceSent(Invoice::with('client')->first()))->render();
+Route::get('preview-invoice/{invoice}', function (Invoice $invoice) {
+    return (new \App\Mail\InvoiceSent($invoice))->render();
 })->name('preview-invoice');
 
 Route::get('/test-mail', function () {

@@ -16,7 +16,6 @@ class InvoiceSent extends Mailable // implements ShouldQueue
     use Queueable, SerializesModels;
 
     public string $invoiceDownloadUrl;
-    public string $invoicePaymentInitUrl;
 
     /**
      * Create a new message instance.
@@ -44,7 +43,7 @@ class InvoiceSent extends Mailable // implements ShouldQueue
     public function content(): Content
     {
         return new Content(
-            markdown: 'mail.invoice-sent',
+            markdown: $this->invoice->is_recurring ? 'mail.invoice-recurring' : 'mail.invoice-regular',
         );
     }
 
