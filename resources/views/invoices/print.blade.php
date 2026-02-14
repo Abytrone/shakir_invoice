@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice #{{ $invoice->invoice_number }} - Shakir Dynamics</title>
+    <title>{{$docType}} #{{ $invoice->invoice_number }} - Shakir Dynamics</title>
     <style>
         * {
             margin: 0;
@@ -369,7 +369,7 @@
     <div class="header">
         <img src="{{ public_path('images/letterhead_items_header.png') }}" alt="Header"
             style="width: 100%; height: auto;">
-        <div class="title">INVOICE</div>
+        <div class="title">{{$docType}}</div>
     </div>
 
     <div class="footer">
@@ -377,7 +377,7 @@
         <img src="{{ public_path('images/letterhead_items_footer.png') }}" alt="Footer"
             style="width: 100%; height: auto;">
         {{-- <div style="font-family:'Courier New', Courier, monospace; text-align: center; font-size: smaller;">
-            DOCUMENT GENERTED BY SHAKIR INVOICE SYSTEM {{ date('M d, Y h:i:A') }}</div> --}}
+            DOCUMENT GENERTED BY SHAKIR {{$docType}} SYSTEM {{ date('M d, Y h:i:A') }}</div> --}}
     </div>
 
     <div style="height: 40mm;"></div> {{-- Spacer for header --}}
@@ -386,7 +386,7 @@
 
         <div class="invoice-meta">
             <div style="text-align: left;">
-                <h1 class="mb-5"><span class="meta-title">INVOICE </span><span
+                <h1 class="mb-5"><span class="meta-title">{{$docType}} </span><span
                         styl>#{{ $invoice->invoice_number }}</span>
                 </h1>
                 <p class="text-sm mb-4"><span class="meta-title">ISSUE DATE:
@@ -396,7 +396,7 @@
                 </p>
 
                 @if($invoice->is_recurring)
-                    <p class="text-sm mb-4"><span class="meta-title">NEXT INVOICE:
+                    <p class="text-sm mb-4"><span class="meta-title">NEXT {{$docType}}:
                         </span>{{ $invoice->next_recurring_date }}</p>
                 @endif
             </div>

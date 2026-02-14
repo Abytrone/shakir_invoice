@@ -334,12 +334,12 @@ class InvoiceResource extends Resource
     protected static function updateTotalsV2(
         Set       $set,
         array     $items,
-        ?string    $taxType,
-        ?string    $discountType,
-        ?float     $taxRate,
-        ?float     $taxAmount,
-        ?float     $discountRate,
-        ?float     $discountAmount,
+        ?string   $taxType,
+        ?string   $discountType,
+        ?float    $taxRate,
+        ?float    $taxAmount,
+        ?float    $discountRate,
+        ?float    $discountAmount,
         ?\Closure $callableSet = null
     ): void
     {
@@ -542,6 +542,13 @@ class InvoiceResource extends Resource
                         ->url(fn(Invoice $record): string => URL::signedRoute('invoices.download', $record))
                         ->openUrlInNewTab(),
 
+                    Tables\Actions\Action::make('download_quotation')
+                        ->icon('heroicon-o-arrow-down-tray')
+                        ->url(fn(Invoice $record): string => URL::signedRoute('invoices.download', [
+                            'invoice' => $record,
+                            'asQuotation' => true]))
+                        ->openUrlInNewTab(),
+
                     Tables\Actions\Action::make('send')
                         ->label(fn(Invoice $record) => $record->status == 'draft' ? 'Send' : 'Resend')
                         ->icon('heroicon-o-paper-airplane')
@@ -656,6 +663,6 @@ class InvoiceResource extends Resource
      */
     public static function twoDpNumberFormat(?float $number): string
     {
-        return number_format($number??0, 2);
+        return number_format($number ?? 0, 2);
     }
 }
