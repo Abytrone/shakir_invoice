@@ -256,7 +256,7 @@
                 <p class="text-sm mb-4"><span class="meta-title">DATE: </span>{{ $payment->created_at->format('d-m-Y') }}</p>
                 <p class="text-sm mb-4">
                     <span class="meta-title">PAYMENT METHOD: </span>
-                    {{  (['bank_transfer'=>'Bank Transfer', 'mobile_money'=>'Mobile Money', 'cash'=>'Cash', 'other'=>'Other'][$payment->payment_method]) ?? 'N/A' }}
+                    {{  (['bank_transfer'=>'Bank Transfer', 'mobile_money'=>'Mobile Money', 'cash'=>'Cash', 'cheque'=>'Cheque', 'other'=>'Other'][$payment->payment_method]) ?? 'N/A' }}
                 </p>
 
                 @if($invoice->is_recurring)
