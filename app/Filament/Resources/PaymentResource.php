@@ -98,6 +98,7 @@ class PaymentResource extends Resource
             'cash' => 'Cash',
             'bank_transfer' => 'Bank Transfer',
             'card' => 'Credit Card',
+            'cheque' => 'Cheque',
             'mobile_money' => 'Mobile Money',
             'other' => 'Other',
         ];

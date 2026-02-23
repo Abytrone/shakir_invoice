@@ -321,7 +321,7 @@
                 <td class="label">Total:</td>
                 <td class="value"><strong>GHC {{ number_format($invoice->total, 2) }}</strong></td>
             </tr>
-            @if($invoice->status == 'paid')
+{{--            @if($invoice->status == 'paid')--}}
                 <tr>
                     <td class="label text-green">Amount Paid:</td>
                     <td class="value text-green">GHC {{ number_format($invoice->amount_paid, 2) }}</td>
@@ -330,7 +330,7 @@
                     <td class="label text-red">Balance Due:</td>
                     <td class="value text-red">GHC {{ number_format($invoice->balance, 2) }}</td>
                 </tr>
-            @endif
+{{--            @endif--}}
         </table>
         <div class="sign">
             <img src="{{ public_path('images/sign.png') }}" alt="Footer" style="width: 15%; height: auto;">
