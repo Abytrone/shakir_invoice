@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{$docType}} #{{ $invoice->invoice_number }} - Shakir Dynamics</title>
+    <title>{{$docType ?? "INVOICE"}} #{{ $invoice->invoice_number }} - Shakir Dynamics</title>
     <style>
         * {
             margin: 0;
@@ -369,7 +369,7 @@
     <div class="header">
         <img src="{{ public_path('images/letterhead_items_header.png') }}" alt="Header"
             style="width: 100%; height: auto;">
-        <div class="title">{{$docType}}</div>
+        <div class="title">{{$docType??'INVOICE'}}</div>
     </div>
 
     <div class="footer">

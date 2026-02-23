@@ -77,6 +77,16 @@ class Invoice extends Model
         );
     }
 
+    protected function balance(): Attribute
+    {
+        return Attribute::make(
+            get: function ($value, array $attributes) {
+                return $this->total - $this->amountPaid;
+            },
+            set: fn($value) => $value,
+        );
+    }
+
     protected function discount(): Attribute
     {
         return Attribute::make(
