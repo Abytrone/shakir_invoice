@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Constants\InvoiceStatus;
+use App\Constants\PaymentStatus;
 use App\Observers\InvoiceObserver;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
@@ -39,30 +40,22 @@ class Invoice extends Model
 
     public function markAsOverdue(): void
     {
-        if ($this->isOverdue() && $this->status != InvoiceStatus::OVERDUE) {
-            $this->update(['status' => 'overdue']);
-        }
+        $this->update(['status' => 'overdue']);
     }
 
     public function markAsSent(): void
     {
-        if ($this->status != 'sent') {
-            $this->update(['status' => 'sent']);
-        }
+        $this->update(['status' => 'sent']);
     }
 
     public function markAsDraft(): void
     {
-        if ($this->status != 'draft') {
-            $this->update(['status' => 'draft']);
-        }
+        $this->update(['status' => 'draft']);
     }
 
     public function markAsCancelled(): void
     {
-        if ($this->status != 'cancelled') {
-            $this->update(['status' => 'cancelled']);
-        }
+        $this->update(['status' => 'cancelled']);
     }
 
     protected function subtotal(): Attribute
@@ -79,7 +72,7 @@ class Invoice extends Model
     {
         return Attribute::make(
             get: function ($value, array $attributes) {
-                return (float) number_format(($this->total - $this->amountPaid), 2);
+                return (float)number_format(($this->total - $this->amountPaid), 2);
             },
             set: fn($value) => $value,
         );
@@ -149,7 +142,8 @@ class Invoice extends Model
 
     public function payments(): HasMany
     {
-        return $this->hasMany(Payment::class);
+        return $this->hasMany(Payment::class)
+            ->where('status', PaymentStatus::COMPLETED);
     }
 
     public function isSent(): bool

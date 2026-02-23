@@ -2,7 +2,6 @@
 
 use App\Console\Commands\AutoBillClient;
 use App\Console\Commands\GenerateRecurringInvoices;
-use App\Console\Commands\LogToFile;
 use App\Console\Commands\RecurringInvoiceReminder;
 use App\Console\Commands\SchedulerIsStillRunning;
 use App\Console\Commands\UpdateInvoiceOverDueStatus;
