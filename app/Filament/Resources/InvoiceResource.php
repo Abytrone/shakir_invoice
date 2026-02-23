@@ -183,13 +183,13 @@ class InvoiceResource extends Resource
                                                     ->afterStateUpdated(function (Get $get, Set $set, ?string $state) {
                                                         $selectedProducts = collect($get('items'))
                                                             ->filter(fn($item) => !empty($item['product_id']) && !empty($item['quantity']));
-                                                        $subtotal = $selectedProducts->sum(fn($item) => (float) $item['unit_price'] * (int) $item['quantity']);
+                                                        $subtotal = $selectedProducts->sum(fn($item) => (float)$item['unit_price'] * (int)$item['quantity']);
 
                                                         // Sync Amount
-                                                        $rate = (float) $state;
+                                                        $rate = (float)$state;
                                                         $amount = $subtotal * ($rate / 100);
 
-                                                        $set('tax_amount', number_format($amount, 2, '.', ''));
+                                                        $set('tax_amount', (float)number_format($amount, 2, '.', ''));
                                                         $set('tax_type', 'percent');
 
                                                         self::updateTotals($get, $set, isTaxAmountManual: false);
@@ -203,13 +203,13 @@ class InvoiceResource extends Resource
                                                     ->afterStateUpdated(function (Get $get, Set $set, ?string $state) {
                                                         $selectedProducts = collect($get('items'))
                                                             ->filter(fn($item) => !empty($item['product_id']) && !empty($item['quantity']));
-                                                        $subtotal = $selectedProducts->sum(fn($item) => (float) $item['unit_price'] * (int) $item['quantity']);
+                                                        $subtotal = $selectedProducts->sum(fn($item) => (float)$item['unit_price'] * (int)$item['quantity']);
 
                                                         // Sync Rate
-                                                        $amount = (float) $state;
+                                                        $amount = (float)$state;
                                                         $rate = $subtotal > 0 ? ($amount / $subtotal) * 100 : 0;
 
-                                                        $set('tax_rate', number_format($rate, 2, '.', ''));
+                                                        $set('tax_rate', (float)number_format($rate, 2, '.', ''));
                                                         $set('tax_type', 'fixed');
 
                                                         self::updateTotals($get, $set, isTaxAmountManual: true);
@@ -232,13 +232,13 @@ class InvoiceResource extends Resource
                                                     ->afterStateUpdated(function (Get $get, Set $set, ?string $state) {
                                                         $selectedProducts = collect($get('items'))
                                                             ->filter(fn($item) => !empty($item['product_id']) && !empty($item['quantity']));
-                                                        $subtotal = $selectedProducts->sum(fn($item) => (float) $item['unit_price'] * (int) $item['quantity']);
+                                                        $subtotal = $selectedProducts->sum(fn($item) => (float)$item['unit_price'] * (int)$item['quantity']);
 
                                                         // Sync Amount
-                                                        $rate = (float) $state;
+                                                        $rate = (float)$state;
                                                         $amount = $subtotal * ($rate / 100);
 
-                                                        $set('discount_amount', number_format($amount, 2, '.', ''));
+                                                        $set('discount_amount', (float)number_format($amount, 2, '.', ''));
                                                         $set('discount_type', 'percent');
 
                                                         self::updateTotals($get, $set, isDiscountAmountManual: false);
@@ -252,13 +252,13 @@ class InvoiceResource extends Resource
                                                     ->afterStateUpdated(function (Get $get, Set $set, ?string $state) {
                                                         $selectedProducts = collect($get('items'))
                                                             ->filter(fn($item) => !empty($item['product_id']) && !empty($item['quantity']));
-                                                        $subtotal = $selectedProducts->sum(fn($item) => (float) $item['unit_price'] * (int) $item['quantity']);
+                                                        $subtotal = $selectedProducts->sum(fn($item) => (float)$item['unit_price'] * (int)$item['quantity']);
 
                                                         // Sync Rate
-                                                        $amount = (float) $state;
+                                                        $amount = (float)$state;
                                                         $rate = $subtotal > 0 ? ($amount / $subtotal) * 100 : 0;
 
-                                                        $set('discount_rate', number_format($rate, 2, '.', ''));
+                                                        $set('discount_rate', (float)number_format($rate, 2, '.', ''));
                                                         $set('discount_type', 'fixed');
 
                                                         self::updateTotals($get, $set, isDiscountAmountManual: true);
@@ -334,7 +334,7 @@ class InvoiceResource extends Resource
 
     protected static function updateSingleProductTotals(Product $product, $quantity): array
     {
-        $unitPrice = (float) ($product->unit_price ?? 0);
+        $unitPrice = (float)($product->unit_price ?? 0);
         $subtotal = $quantity * $unitPrice;
 
         return [
@@ -351,7 +351,7 @@ class InvoiceResource extends Resource
         $subtotal = 0;
 
         foreach ($selectedProducts as $item) {
-            $subtotal += (float) $item['unit_price'] * (int) $item['quantity'];
+            $subtotal += (float)$item['unit_price'] * (int)$item['quantity'];
         }
 
         $taxType = $get('tax_type') ?? 'percent';
@@ -359,26 +359,26 @@ class InvoiceResource extends Resource
 
         // Tax Calculation
         if ($taxType === 'fixed') {
-            $taxAmount = (float) $get('tax_amount');
+            $taxAmount = (float)$get('tax_amount');
             // In Fixed mode, we trust the amount explicitly.
             // We set the rate just for UI consistency if they switch back, but the DB truth is the amount.
             $rate = $subtotal > 0 ? ($taxAmount / $subtotal) * 100 : 0;
-            $set('tax_rate', number_format($rate, 2, '.', ''));
+            $set('tax_rate', (float)number_format($rate, 2, '.', ''));
         } else {
-            $tax_rate = (float) $get('tax_rate');
+            $tax_rate = (float)$get('tax_rate');
             $taxAmount = $subtotal * ($tax_rate / 100);
-            $set('tax_amount', number_format($taxAmount, 2, '.', ''));
+            $set('tax_amount', (float)number_format($taxAmount, 2, '.', ''));
         }
 
         // Discount Calculation
         if ($discountType === 'fixed') {
-            $discountAmount = (float) $get('discount_amount');
+            $discountAmount = (float)$get('discount_amount');
             $rate = $subtotal > 0 ? ($discountAmount / $subtotal) * 100 : 0;
-            $set('discount_rate', number_format($rate, 2, '.', ''));
+            $set('discount_rate', (float)number_format($rate, 2, '.', ''));
         } else {
-            $discount_rate = (float) $get('discount_rate');
+            $discount_rate = (float)$get('discount_rate');
             $discountAmount = $subtotal * ($discount_rate / 100);
-            $set('discount_amount', number_format($discountAmount, 2, '.', ''));
+            $set('discount_amount', (float)number_format($discountAmount, 2, '.', ''));
         }
 
         $grandTotal = $subtotal + $taxAmount - $discountAmount;
