@@ -53,6 +53,6 @@ jobs:
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd ${{ secrets.REMOTE_TARGET }}
+            cd "${{ secrets.REMOTE_TARGET }}"
             php artisan migrate --force
             php artisan optimize:clear
