@@ -36,8 +36,8 @@ jobs:
         run: npm run build
 
       - name: Sync files to cPanel via SSH
-        uses: easingthemes/ssh-deploy@main
-        env:
+        uses: easingthemes/ssh-deploy@v5.0.3
+        with:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           ARGS: "-rltgoDzvO"
           SOURCE: ""
@@ -45,14 +45,10 @@ jobs:
           REMOTE_USER: ${{ secrets.REMOTE_USER }}
           TARGET: ${{ secrets.REMOTE_TARGET }}
           EXCLUDE: "/node_modules/, /.git/, /.github/, /.env, /storage/logs/, /tests/, /phpunit.xml, /README.md"
-
-      - name: Run post-deployment artisan commands
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.REMOTE_HOST }}
-          username: ${{ secrets.REMOTE_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd "${{ secrets.REMOTE_TARGET }}"
+          SCRIPT_AFTER: |
+            cd ${{ secrets.REMOTE_TARGET }}
             php artisan migrate --force
             php artisan optimize:clear
+            php artisan cache:clear
+            php artisan config:clear
+            php artisan view:clear
