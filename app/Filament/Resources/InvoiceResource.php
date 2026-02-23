@@ -659,10 +659,10 @@ class InvoiceResource extends Resource
 
     /**
      * @param ?float $number
-     * @return string
+     * @return float
      */
-    public static function twoDpNumberFormat(?float $number): string
+    public static function twoDpNumberFormat(?float $number): float
     {
-        return number_format($number ?? 0, 2);
+        return (float)number_format($number ?? 0, 2);
     }
 }
