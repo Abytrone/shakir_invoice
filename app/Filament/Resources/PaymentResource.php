@@ -58,6 +58,7 @@ class PaymentResource extends Resource
                                 'bank_transfer' => 'Bank Transfer',
                                 'card' => 'Credit Card',
                                 'mobile_money' => 'Mobile Money',
+                                'cheque' => 'Cheque',
                                 'other' => 'Other',
                             ])
                             ->required()
