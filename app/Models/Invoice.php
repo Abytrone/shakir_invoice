@@ -34,9 +34,7 @@ class Invoice extends Model
 
     public function markAsPaid(): void
     {
-        if ($this->status != 'paid') {
-            $this->update(['status' => 'paid']);
-        }
+        $this->update(['status' => 'paid']);
     }
 
     public function markAsOverdue(): void
@@ -81,7 +79,7 @@ class Invoice extends Model
     {
         return Attribute::make(
             get: function ($value, array $attributes) {
-                return $this->total - $this->amountPaid;
+                return (float) number_format(($this->total - $this->amountPaid), 2);
             },
             set: fn($value) => $value,
         );
@@ -92,7 +90,7 @@ class Invoice extends Model
         return Attribute::make(
             get: function ($value, array $attributes) {
                 if (($attributes['discount_type'] ?? 'percent') === 'fixed') {
-                    return (float) ($attributes['discount_amount'] ?? 0);
+                    return (float)($attributes['discount_amount'] ?? 0);
                 }
                 return $this->items->sum('total') * ($attributes['discount_rate'] / 100);
             },
@@ -105,7 +103,7 @@ class Invoice extends Model
         return Attribute::make(
             get: function ($value, array $attributes) {
                 if (($attributes['tax_type'] ?? 'percent') === 'fixed') {
-                    return (float) ($attributes['tax_amount'] ?? 0);
+                    return (float)($attributes['tax_amount'] ?? 0);
                 }
                 return $this->items->sum('total') * ($attributes['tax_rate'] / 100);
             },
@@ -120,13 +118,13 @@ class Invoice extends Model
                 $itemsSum = $this->items->sum('total');
 
                 if (($attributes['tax_type'] ?? 'percent') === 'fixed') {
-                    $taxAmount = (float) ($attributes['tax_amount'] ?? 0);
+                    $taxAmount = (float)($attributes['tax_amount'] ?? 0);
                 } else {
                     $taxAmount = ($attributes['tax_rate'] ?? 0) / 100 * $itemsSum;
                 }
 
                 if (($attributes['discount_type'] ?? 'percent') === 'fixed') {
-                    $discountAmount = (float) ($attributes['discount_amount'] ?? 0);
+                    $discountAmount = (float)($attributes['discount_amount'] ?? 0);
                 } else {
                     $discountAmount = ($attributes['discount_rate'] ?? 0) / 100 * $itemsSum;
                 }

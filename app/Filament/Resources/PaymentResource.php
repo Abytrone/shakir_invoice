@@ -3,7 +3,9 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\PaymentResource\Pages;
+use App\Models\Invoice;
 use App\Models\Payment;
+use Closure;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -31,7 +33,9 @@ class PaymentResource extends Resource
                     ->description('Enter the payment information below.')
                     ->schema([
                         Forms\Components\Select::make('invoice_id')
-                            ->relationship('invoice', 'invoice_number')
+                            ->relationship('invoice', 'invoice_number', modifyQueryUsing: function (Builder $query): Builder {
+                                return $query->where('status', '!=', 'paid');
+                            })
                             ->required()
                             ->searchable()
                             ->preload()
@@ -43,7 +47,16 @@ class PaymentResource extends Resource
                             ->numeric()
                             ->minValue(0)
                             ->prefix('₵')
-                            ->label('Amount Paid'),
+                            ->label('Amount Paid')
+                            ->rules([
+                                fn(Forms\Get $get): Closure => function (string $attribute, $value, Closure $fail) use ($get) {
+                                    $invoiceId = $get('invoice_id');
+                                    $invoice = Invoice::with('items')->where('id', $invoiceId)->first();
+                                    if ($value > $invoice->balance) {
+                                        $fail("The :attribute must be less than or equal to $value.");
+                                    }
+                                },
+                            ]),
 
                         Forms\Components\DateTimePicker::make('created_at')
                             ->label('Payment Date')
