@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\SaleResource\Pages;
+use App\Models\Client;
 use App\Models\Sale;
 use App\Models\Stock;
 use Filament\Forms;
@@ -11,6 +12,7 @@ use Filament\Forms\Get;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class SaleResource extends Resource
 {
@@ -30,14 +32,14 @@ class SaleResource extends Resource
                         Forms\Components\Section::make('Sale')
                             ->icon('heroicon-o-document-text')
                             ->schema([
-                                Forms\Components\TextInput::make('sale_uuid')
+                                Forms\Components\TextInput::make('reference')
                                     ->label('Sale reference')
                                     ->disabled()
-                                    ->visible(fn(string $context): bool => $context === 'edit')
+                                    ->visible(fn (string $context): bool => $context === 'edit')
                                     ->dehydrated(false)
                                     ->columnSpanFull(),
                                 Forms\Components\Select::make('client_id')
-                                    ->relationship('client', 'name')
+                                    ->options(fn (): array => Client::query()->orderBy('name')->pluck('name', 'id')->toArray())
                                     ->searchable()
                                     ->preload()
                                     ->required()
@@ -62,7 +64,11 @@ class SaleResource extends Resource
                                             ->searchable()
                                             ->required()
                                             ->live()
-                                            ->disableOptionsWhenSelectedInSiblingRepeaterItems()
+                                            ->disableOptionWhen(function ($value, $state, Get $get): bool {
+                                                $items = $get('saleItems') ?? [];
+                                                $selectedStockIds = collect($items)->pluck('stock_id')->filter();
+                                                return $selectedStockIds->contains($value) && (string) $get('stock_id') !== (string) $value;
+                                            })
                                             ->afterStateUpdated(function ($state, Forms\Set $set): void {
                                                 if ($state) {
                                                     $stock = Stock::find($state);
@@ -132,7 +138,7 @@ class SaleResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('sale_uuid')
+                Tables\Columns\TextColumn::make('reference')
                     ->label('Reference')
                     ->searchable()
                     ->sortable(),
@@ -140,6 +146,16 @@ class SaleResource extends Resource
                     ->label('Client')
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('total')
+                    ->label('Total')
+                    ->getStateUsing(fn (Sale $record): float => $record->total)
+                    ->numeric(decimalPlaces: 2)
+                    ->sortable(false),
+                Tables\Columns\TextColumn::make('amount_paid')
+                    ->label('Amount paid')
+                    ->getStateUsing(fn (Sale $record): float => $record->amount_paid)
+                    ->numeric(decimalPlaces: 2)
+                    ->sortable(false),
                 Tables\Columns\TextColumn::make('sale_items_count')
                     ->label('Items')
                     ->counts('saleItems')
@@ -169,6 +185,11 @@ class SaleResource extends Resource
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->with(['saleItems', 'payments']);
     }
 
     public static function getRelations(): array

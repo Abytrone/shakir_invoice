@@ -2,12 +2,15 @@
 
 namespace App\Filament\Resources;
 
+use App\Constants\InvoiceStatus;
 use App\Filament\Resources\PaymentResource\Pages;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Models\Sale;
 use Closure;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -32,15 +35,45 @@ class PaymentResource extends Resource
                     ->icon('heroicon-o-credit-card')
                     ->description('Enter the payment information below.')
                     ->schema([
-                        Forms\Components\Select::make('invoice_id')
-                            ->relationship('invoice', 'invoice_number', modifyQueryUsing: function (Builder $query): Builder {
-                                return $query->where('status', '!=', 'paid');
-                            })
+                        Forms\Components\Select::make('type')
+                            ->options([
+                                Payment::TYPE_INVOICE => 'Invoice',
+                                Payment::TYPE_SALES => 'Sale',
+                            ])
+                            ->default(Payment::TYPE_INVOICE)
                             ->required()
+                            ->live()
+                            ->label('Payment for')
+                            ->prefixIcon('heroicon-m-document-text')
+                            ->afterStateUpdated(function ($state, Forms\Set $set): void {
+                                $set('invoice_id', null);
+                                $set('sale_id', null);
+                            }),
+
+                        Forms\Components\Select::make('invoice_id')
+                            ->options(function (): array {
+                                return Invoice::query()
+                                    ->where('status', '!=', InvoiceStatus::PAID)
+                                    ->pluck('invoice_number', 'id')->toArray();
+                            })
+                            ->required(fn(Get $get): bool => $get('type') === Payment::TYPE_INVOICE)
                             ->searchable()
                             ->preload()
                             ->label('Invoice Number')
-                            ->prefixIcon('heroicon-m-document-text'),
+                            ->prefixIcon('heroicon-m-document-text')
+                            ->visible(fn(Get $get): bool => $get('type') === Payment::TYPE_INVOICE)
+                            ->dehydrated(),
+
+                        Forms\Components\Select::make('sale_id')
+                            ->options(function (): array {
+                                return Sale::query()->pluck('reference', 'id')->toArray();
+                            })
+                            ->searchable()
+                            ->preload()
+                            ->label('Sale')
+                            ->prefixIcon('heroicon-m-shopping-cart')
+                            ->required(fn(Get $get): bool => $get('type') === Payment::TYPE_SALES)
+                            ->visible(fn(Get $get): bool => $get('type') === Payment::TYPE_SALES),
 
                         Forms\Components\TextInput::make('amount')
                             ->required()
@@ -49,11 +82,17 @@ class PaymentResource extends Resource
                             ->prefix('₵')
                             ->label('Amount Paid')
                             ->rules([
-                                fn(Forms\Get $get): Closure => function (string $attribute, $value, Closure $fail) use ($get) {
+                                fn(Get $get): Closure => function (string $attribute, $value, Closure $fail) use ($get) {
+                                    if ($get('type') !== Payment::TYPE_INVOICE) {
+                                        return;
+                                    }
                                     $invoiceId = $get('invoice_id');
+                                    if (!$invoiceId) {
+                                        return;
+                                    }
                                     $invoice = Invoice::with('items')->where('id', $invoiceId)->first();
-                                    if ($value > $invoice->balance) {
-                                        $fail("The :attribute must be less than or equal to $value.");
+                                    if ($invoice && $value > $invoice->balance) {
+                                        $fail("The :attribute must be less than or equal to {$invoice->balance}.");
                                     }
                                 },
                             ]),
@@ -119,9 +158,24 @@ class PaymentResource extends Resource
         return $table
             ->defaultSort('created_at', 'desc')
             ->columns([
-                Tables\Columns\TextColumn::make('invoice.invoice_number')
-                    ->searchable()
-                    ->sortable()
+                Tables\Columns\TextColumn::make('type')
+                    ->badge()
+                    ->formatStateUsing(fn(string $state): string => $state === Payment::TYPE_SALES ? 'Sale' : 'Invoice')
+                    ->color(fn(string $state): string => $state === Payment::TYPE_SALES ? 'success' : 'primary'),
+
+                Tables\Columns\TextColumn::make('payable_reference')
+                    ->label('Reference')
+                    ->getStateUsing(function (Payment $record): string {
+                        $payable = $record->payable;
+                        if (!$payable) {
+                            return '–';
+                        }
+                        return $payable instanceof Invoice
+                            ? $payable->invoice_number
+                            : ($payable->reference ?? $payable->sale_uuid);
+                    })
+                    ->searchable(false)
+                    ->sortable(false)
                     ->weight('bold')
                     ->color('primary'),
 
@@ -135,7 +189,6 @@ class PaymentResource extends Resource
                     ->badge()
                     ->formatStateUsing(fn(string $state) => $paymentLabels[$state] ?? $state)
                     ->icon(fn(string $state): string => match ($state) {
-                        'cash' => 'heroicon-m-banknotes',
                         'bank_transfer' => 'heroicon-m-building-library',
                         'card' => 'heroicon-m-credit-card',
                         'mobile_money' => 'heroicon-m-device-phone-mobile',
@@ -147,7 +200,6 @@ class PaymentResource extends Resource
                         'bank_transfer' => 'info',
                         'card' => 'primary',
                         'mobile_money' => 'warning',
-                        'other' => 'gray',
                         default => 'gray',
                     })
                     ->sortable()
@@ -204,13 +256,19 @@ class PaymentResource extends Resource
                         'mobile_money' => 'Mobile Money',
                         'other' => 'Other',
                     ]),
+                Tables\Filters\SelectFilter::make('type')
+                    ->options([
+                        Payment::TYPE_INVOICE => 'Invoice',
+                        Payment::TYPE_SALES => 'Sale',
+                    ]),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\Action::make('receipt')
                         ->icon('heroicon-o-printer')
                         ->url(fn(Payment $record): string => URL::signedRoute('payments.receipt', $record))
-                        ->openUrlInNewTab(),
+                        ->openUrlInNewTab()
+                        ->visible(fn(Payment $record): bool => $record->payable instanceof Invoice),
                     Tables\Actions\DeleteAction::make(),
                 ])->icon('heroicon-m-ellipsis-vertical')->tooltip('Actions'),
             ])

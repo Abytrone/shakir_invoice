@@ -28,16 +28,20 @@ class Client extends Model
         return $this->hasMany(Quote::class);
     }
 
-    public function payments(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
+    /**
+     * Payments made against this client's invoices or sales (via polymorphic payable).
+     * Use Payment::whereHasMorph('payable', [Invoice::class], fn ($q) => $q->where('client_id', $id))
+     *         ->orWhereHasMorph('payable', [Sale::class], fn ($q) => $q->where('client_id', $id))
+     * for querying.
+     */
+    public function totalPaymentsAmount(): float
     {
-        return $this->hasManyThrough(
-            \App\Models\Payment::class,
-            \App\Models\Invoice::class,
-            'client_id', // Foreign key on invoices table...
-            'invoice_id', // Foreign key on payments table...
-            'id', // Local key on clients table...
-            'id'  // Local key on invoices table...
-        );
+        return (float) \App\Models\Payment::query()
+            ->where(function ($q) {
+                $q->whereHasMorph('payable', [\App\Models\Invoice::class], fn ($q2) => $q2->where('client_id', $this->getKey()))
+                    ->orWhereHasMorph('payable', [\App\Models\Sale::class], fn ($q2) => $q2->where('client_id', $this->getKey()));
+            })
+            ->sum('amount');
     }
 
 }

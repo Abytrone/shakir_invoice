@@ -8,8 +8,9 @@ class PaymentObserver
 {
     public function created(Payment $payment): void
     {
-        if ($payment->invoice->balance <= 0) {
-            $payment->invoice()->update(['status' => 'paid']);
+        $payable = $payment->payable;
+        if ($payable instanceof \App\Models\Invoice && $payable->balance <= 0) {
+            $payable->update(['status' => 'paid']);
         }
     }
 }

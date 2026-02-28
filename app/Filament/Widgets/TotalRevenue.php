@@ -2,11 +2,12 @@
 
 namespace App\Filament\Widgets;
 
+use App\Models\Client;
+use App\Models\Invoice;
+use App\Models\Payment;
+use App\Models\Sale;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Card;
-use App\Models\Payment;
-use App\Models\Invoice;
-use App\Models\Client;
 
 class TotalRevenue extends StatsOverviewWidget
 {
@@ -24,9 +25,28 @@ class TotalRevenue extends StatsOverviewWidget
         $overdueCount = Invoice::where('status', 'overdue')->count();
         $overdueAmount = Invoice::where('status', 'overdue')->get()->sum('total');
 
-        $topClient = Client::withSum('payments', 'amount')
-            ->orderByDesc('payments_sum_amount')
-            ->first();
+        $invoiceTotals = Payment::query()
+            ->where('payable_type', Invoice::class)
+            ->join('invoices', 'invoices.id', '=', 'payments.payable_id')
+            ->groupBy('invoices.client_id')
+            ->selectRaw('invoices.client_id as client_id, SUM(payments.amount) as total')
+            ->pluck('total', 'client_id');
+        $saleTotals = Payment::query()
+            ->where('payable_type', Sale::class)
+            ->join('sales', 'sales.id', '=', 'payments.payable_id')
+            ->groupBy('sales.client_id')
+            ->selectRaw('sales.client_id as client_id, SUM(payments.amount) as total')
+            ->pluck('total', 'client_id');
+        $merged = collect();
+        foreach ($invoiceTotals as $id => $t) {
+            $merged[$id] = ($merged[$id] ?? 0) + (float) $t;
+        }
+        foreach ($saleTotals as $id => $t) {
+            $merged[$id] = ($merged[$id] ?? 0) + (float) $t;
+        }
+        $topClientId = $merged->sortDesc()->keys()->first();
+        $topClient = $topClientId ? Client::find($topClientId) : null;
+        $topClientAmount = $topClientId ? ($merged[$topClientId] ?? 0) : 0;
 
         return [
             Card::make('Total Revenue (This Month)', 'GHS ' . number_format($totalRevenue, 2))
@@ -42,7 +62,7 @@ class TotalRevenue extends StatsOverviewWidget
                 ->color('danger')
                 ->icon('heroicon-o-clock'),
             Card::make('Top Client', $topClient ? $topClient->name : 'N/A')
-                ->description($topClient ? ('GHS ' . number_format($topClient->payments_sum_amount, 2) . ' paid') : 'No payments yet')
+                ->description($topClient ? ('GHS ' . number_format($topClientAmount, 2) . ' paid') : 'No payments yet')
                 ->color('primary')
                 ->icon('heroicon-o-user-group'),
         ];

@@ -6,7 +6,7 @@ use App\Observers\PaymentObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 #[ObservedBy(PaymentObserver::class)]
 class Payment extends Model
@@ -20,8 +20,11 @@ class Payment extends Model
         'payment_date' => 'datetime',
     ];
 
-    public function invoice(): BelongsTo
+    public const TYPE_INVOICE = 'invoice';
+    public const TYPE_SALES = 'sales';
+
+    public function payable(): MorphTo
     {
-        return $this->belongsTo(Invoice::class);
+        return $this->morphTo();
     }
 }

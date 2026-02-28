@@ -197,7 +197,14 @@ class PaymentController extends Controller
 
     public function receipt(Payment $payment)
     {
-        $amount = $payment->invoice->total;
+        $payable = $payment->payable;
+
+        if (! $payable instanceof Invoice) {
+            abort(404, 'Receipt is only available for invoice payments.');
+        }
+
+        $invoice = $payable;
+        $amount = $invoice->total;
         $integer = floor($amount);
         $decimal = round(fmod($amount, 1) * 100);
 
@@ -216,9 +223,9 @@ class PaymentController extends Controller
 
         $pdf = PDF::loadView('invoices.receipt', [
             'payment' => $payment,
-            'invoice' => $payment->invoice,
-            'client' => $payment->invoice->client,
-            'items' => $payment->invoice->items,
+            'invoice' => $invoice,
+            'client' => $invoice->client,
+            'items' => $invoice->items,
             'amountInWords' => strtoupper($amountInWords),
         ]);
 
