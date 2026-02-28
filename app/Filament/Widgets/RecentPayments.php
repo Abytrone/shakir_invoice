@@ -23,7 +23,7 @@ class RecentPayments extends TableWidget
     protected function getTableColumns(): array
     {
         return [
-            TextColumn::make('invoice.client.name')
+            TextColumn::make('payable.client.name')
                 ->label('Client')
                 ->sortable()
                 ->searchable(),
