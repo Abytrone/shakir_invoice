@@ -35,4 +35,9 @@ class Product extends Model
     {
         return $this->hasMany(QuoteItem::class);
     }
+
+    public function stocks(): HasMany
+    {
+        return $this->hasMany(Stock::class);
+    }
 }
