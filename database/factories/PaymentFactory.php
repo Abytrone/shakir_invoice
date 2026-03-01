@@ -13,12 +13,14 @@ class PaymentFactory extends Factory
     public function definition(): array
     {
         return [
-            'type' => \App\Models\Payment::TYPE_INVOICE,
+            'type' => Payment::TYPE_INVOICE,
             'amount' => $this->faker->randomFloat(2, 1, 1000),
             'payment_method' => $this->faker->randomElement(['cash', 'bank_transfer', 'card', 'mobile_money']),
             'reference_number' => $this->faker->optional()->uuid(),
             'notes' => $this->faker->optional()->sentence(),
             'status' => 'completed',
+            'payable_type' => \App\Models\Invoice::class,
+            'payable_id' => \App\Models\Invoice::factory(),
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),
         ];

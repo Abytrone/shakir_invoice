@@ -100,7 +100,8 @@ class AutoBillClientTest extends TestCase
         ]);
 
         $this->assertDatabaseHas('payments', [
-            'invoice_id' => $invoice->id
+            'payable_type' => Invoice::class,
+            'payable_id' => $invoice->id,
         ]);
     }
 

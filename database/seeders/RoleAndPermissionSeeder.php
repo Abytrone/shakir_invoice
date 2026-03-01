@@ -10,15 +10,15 @@ class RoleAndPermissionSeeder extends Seeder
 {
     public function run(): void
     {
-        // Create roles
-        $superAdmin = Role::create(['name' => 'super_admin']);
-        $admin = Role::create(['name' => 'admin']);
-        $manager = Role::create(['name' => 'manager']);
-        $accountant = Role::create(['name' => 'accountant']);
-        $user = Role::create(['name' => 'user']);
+        // Create roles (idempotent for testing)
+        $superAdmin = Role::firstOrCreate(['name' => 'super_admin']);
+        $admin = Role::firstOrCreate(['name' => 'admin']);
+        $manager = Role::firstOrCreate(['name' => 'manager']);
+        $accountant = Role::firstOrCreate(['name' => 'accountant']);
+        $user = Role::firstOrCreate(['name' => 'user']);
 
         // Resource permissions based on Filament Shield's structure
-        $resources = ['invoice', 'quote', 'client', 'product', 'role', 'user'];
+        $resources = ['invoice', 'quote', 'client', 'product', 'role', 'user', 'stock', 'sale', 'payment', 'auth_payment'];
         $resourcePermissions = [
             'view_any',
             'view',
@@ -40,25 +40,25 @@ class RoleAndPermissionSeeder extends Seeder
 
         $allPermissions = [];
 
-        // Create resource permissions
+        // Create resource permissions (idempotent)
         foreach ($resources as $resource) {
             foreach ($resourcePermissions as $action) {
                 $permissionName = "{$action}_{$resource}";
-                $permission = Permission::create(['name' => $permissionName]);
+                $permission = Permission::firstOrCreate(['name' => $permissionName]);
                 $allPermissions[] = $permission;
             }
         }
 
-        // Create custom permissions
+        // Create custom permissions (idempotent)
         foreach ($customPermissions as $resource => $actions) {
             foreach ($actions as $permissionName) {
-                $permission = Permission::create(['name' => $permissionName]);
+                $permission = Permission::firstOrCreate(['name' => $permissionName]);
                 $allPermissions[] = $permission;
             }
         }
 
-        // Assign permissions to roles
-        $superAdmin->givePermissionTo($allPermissions);
+        // Assign permissions to roles (sync so new permissions are added)
+        $superAdmin->syncPermissions($allPermissions);
 
         $admin->givePermissionTo(array_filter($allPermissions, function ($permission) {
             return ! str_contains($permission->name, '_role') && ! str_contains($permission->name, '_user');
