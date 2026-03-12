@@ -6,10 +6,13 @@ use App\Filament\Resources\PaymentResource;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Sale;
+use App\Traits\RedirectToIndexAfterCreate;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreatePayment extends CreateRecord
 {
+    use RedirectToIndexAfterCreate;
+
     protected static string $resource = PaymentResource::class;
 
     protected function mutateFormDataBeforeCreate(array $data): array
