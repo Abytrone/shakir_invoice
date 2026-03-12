@@ -4,3 +4,10 @@
   - [ ] send email after creating invoice
     - [ ] qr code
     - [ ] payment link
+- Sale
+  - [ ] add banks and MoMo
+  - [ ] add customer accounts [MoMo or Bank]
+    - [ ] use it to set payment when it is not cash
+  - [ ] if payment is not cash [MoMo, Bank or Cheque]
+    - add payment source [Bank or MoMo]
+    - add number [MoMo or Bank number]
