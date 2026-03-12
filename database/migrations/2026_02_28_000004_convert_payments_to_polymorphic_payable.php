@@ -27,9 +27,9 @@ return new class extends Migration
             'payable_id' => DB::raw('sale_id'),
         ]);
 
-        Schema::table('payments', function (Blueprint $table) {
-            $table->dropForeign(['invoice_id']);
-        });
+//        Schema::table('payments', function (Blueprint $table) {
+//            $table->dropForeign(['invoice_id']);
+//        });
         Schema::table('payments', function (Blueprint $table) {
             $table->dropForeign(['sale_id']);
         });
@@ -41,7 +41,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('payments', function (Blueprint $table) {
-            $table->foreignId('invoice_id')->nullable()->after('id')->constrained()->nullOnDelete();
+            $table->foreignId('invoice_id')->nullable()->after('id');
             $table->foreignId('sale_id')->nullable()->after('invoice_id')->constrained()->nullOnDelete();
         });
 

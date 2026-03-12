@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\SaleResource\Pages;
 use App\Models\Client;
 use App\Models\Sale;
+use App\Models\SaleItem;
 use App\Models\Stock;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -64,11 +65,8 @@ class SaleResource extends Resource
                                             ->searchable()
                                             ->required()
                                             ->live()
-                                            ->disableOptionWhen(function ($value, $state, Get $get): bool {
-                                                $items = $get('saleItems') ?? [];
-                                                $selectedStockIds = collect($items)->pluck('stock_id')->filter();
-                                                return $selectedStockIds->contains($value) && (string) $get('stock_id') !== (string) $value;
-                                            })
+                                            ->disableOptionsWhenSelectedInSiblingRepeaterItems()
+
                                             ->afterStateUpdated(function ($state, Forms\Set $set): void {
                                                 if ($state) {
                                                     $stock = Stock::find($state);
@@ -80,7 +78,33 @@ class SaleResource extends Resource
                                             ->required()
                                             ->numeric()
                                             ->minValue(1)
-                                            ->default(1),
+                                            ->default(1)
+                                            ->rules([
+                                                fn (Get $get, ?SaleItem $record): \Closure => function (string $attribute, $value, \Closure $fail) use ($get, $record) {
+                                                    $stockId = $get('stock_id');
+                                                    if (! $stockId || ! $value) {
+                                                        return;
+                                                    }
+
+                                                    $stock = Stock::with('product')->find($stockId);
+                                                    if (! $stock) {
+                                                        return;
+                                                    }
+
+                                                    $available = $stock->quantity;
+
+                                                    // When editing an existing item, the stock was already
+                                                    // decremented — add back the original allocation.
+                                                    if ($record && (int) $record->stock_id === (int) $stockId) {
+                                                        $available += $record->quantity;
+                                                    }
+
+                                                    if ((int) $value > $available) {
+                                                        $name = $stock->product?->name ?? "Stock #{$stockId}";
+                                                        $fail("{$name} only has {$available} units available.");
+                                                    }
+                                                },
+                                            ]),
                                         Forms\Components\TextInput::make('unit_price')
                                             ->required()
                                             ->numeric()
