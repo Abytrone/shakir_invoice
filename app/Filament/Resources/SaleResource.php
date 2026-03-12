@@ -14,6 +14,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\HtmlString;
 
 class SaleResource extends Resource
 {
@@ -36,11 +37,11 @@ class SaleResource extends Resource
                                 Forms\Components\TextInput::make('reference')
                                     ->label('Sale reference')
                                     ->disabled()
-                                    ->visible(fn (string $context): bool => $context === 'edit')
+                                    ->visible(fn(string $context): bool => $context === 'edit')
                                     ->dehydrated(false)
                                     ->columnSpanFull(),
                                 Forms\Components\Select::make('client_id')
-                                    ->options(fn (): array => Client::query()->orderBy('name')->pluck('name', 'id')->toArray())
+                                    ->options(fn(): array => Client::query()->orderBy('name')->pluck('name', 'id')->toArray())
                                     ->searchable()
                                     ->preload()
                                     ->required()
@@ -66,7 +67,6 @@ class SaleResource extends Resource
                                             ->required()
                                             ->live()
                                             ->disableOptionsWhenSelectedInSiblingRepeaterItems()
-
                                             ->afterStateUpdated(function ($state, Forms\Set $set): void {
                                                 if ($state) {
                                                     $stock = Stock::find($state);
@@ -80,14 +80,14 @@ class SaleResource extends Resource
                                             ->minValue(1)
                                             ->default(1)
                                             ->rules([
-                                                fn (Get $get, ?SaleItem $record): \Closure => function (string $attribute, $value, \Closure $fail) use ($get, $record) {
+                                                fn(Get $get, ?SaleItem $record): \Closure => function (string $attribute, $value, \Closure $fail) use ($get, $record) {
                                                     $stockId = $get('stock_id');
-                                                    if (! $stockId || ! $value) {
+                                                    if (!$stockId || !$value) {
                                                         return;
                                                     }
 
                                                     $stock = Stock::with('product')->find($stockId);
-                                                    if (! $stock) {
+                                                    if (!$stock) {
                                                         return;
                                                     }
 
@@ -95,11 +95,11 @@ class SaleResource extends Resource
 
                                                     // When editing an existing item, the stock was already
                                                     // decremented — add back the original allocation.
-                                                    if ($record && (int) $record->stock_id === (int) $stockId) {
+                                                    if ($record && (int)$record->stock_id === (int)$stockId) {
                                                         $available += $record->quantity;
                                                     }
 
-                                                    if ((int) $value > $available) {
+                                                    if ((int)$value > $available) {
                                                         $name = $stock->product?->name ?? "Stock #{$stockId}";
                                                         $fail("{$name} only has {$available} units available.");
                                                     }
@@ -123,36 +123,82 @@ class SaleResource extends Resource
                                     ->addActionLabel('Add product')
                                     ->columnSpanFull(),
                             ])
-                            ->columnSpan(4),
+                            ->columnSpan(3),
 
-                        // Right 20% (1/5) – Summary
-                        Forms\Components\Section::make('Summary')
-                            ->icon('heroicon-o-calculator')
+                        Forms\Components\Group::make()
                             ->schema([
-                                Forms\Components\Placeholder::make('summary_subtotal')
-                                    ->label('Subtotal')
-                                    ->content(function (Get $get): string {
-                                        $items = $get('saleItems') ?? [];
-                                        $sum = collect($items)->sum(fn($item) => (int)(is_array($item) ? ($item['quantity'] ?? 0) : ($item->quantity ?? 0)) * (float)(is_array($item) ? ($item['unit_price'] ?? 0) : ($item->unit_price ?? 0)));
-                                        return number_format($sum, 2);
-                                    }),
-                                Forms\Components\Placeholder::make('summary_discount')
-                                    ->label('Total discount')
-                                    ->content(function (Get $get): string {
-                                        $items = $get('saleItems') ?? [];
-                                        $sum = collect($items)->sum(fn($item) => (float)(is_array($item) ? ($item['discount'] ?? 0) : ($item->discount ?? 0)));
-                                        return number_format($sum, 2);
-                                    }),
-                                Forms\Components\Placeholder::make('summary_total')
-                                    ->label('Total')
-                                    ->content(function (Get $get): string {
-                                        $items = $get('saleItems') ?? [];
-                                        $subtotal = collect($items)->sum(fn($item) => (int)(is_array($item) ? ($item['quantity'] ?? 0) : ($item->quantity ?? 0)) * (float)(is_array($item) ? ($item['unit_price'] ?? 0) : ($item->unit_price ?? 0)));
-                                        $discount = collect($items)->sum(fn($item) => (float)(is_array($item) ? ($item['discount'] ?? 0) : ($item->discount ?? 0)));
-                                        return number_format($subtotal - $discount, 2);
-                                    }),
+                                Forms\Components\Section::make('Payments')
+                                    ->icon('heroicon-o-banknotes')
+                                    ->schema([
+                                        Forms\Components\Repeater::make('payments')
+                                            ->relationship()
+                                            ->schema([
+                                                Forms\Components\Select::make('payment_method')
+                                                    ->options([
+                                                        'cash' => 'Cash',
+                                                        'bank_transfer' => 'Bank Transfer',
+                                                        'card' => 'Card',
+                                                        'mobile_money' => 'Mobile Money',
+                                                    ])
+                                                    ->required(),
+                                                Forms\Components\TextInput::make('amount')
+                                                    ->required()
+                                                    ->numeric()
+                                                    ->minValue(0.01),
+                                            ])
+                                            ->columns(2)
+                                            ->defaultItems(1)
+                                            ->reorderable(false)
+                                            ->addActionLabel('Add payment')
+                                            ->columnSpanFull()
+                                            ->live(),
+                                    ]),
+
+                                Forms\Components\Section::make('Summary')
+                                    ->icon('heroicon-o-calculator')
+                                    ->schema([
+                                        Forms\Components\Placeholder::make('summary_display')
+                                            ->hiddenLabel()
+                                            ->content(function (Get $get): HtmlString {
+                                                $items = $get('saleItems') ?? [];
+                                                $subtotal = collect($items)->sum(fn($item) => (int)(is_array($item) ? ($item['quantity'] ?? 0) : ($item->quantity ?? 0)) * (float)(is_array($item) ? ($item['unit_price'] ?? 0) : ($item->unit_price ?? 0)));
+                                                $discount = collect($items)->sum(fn($item) => (float)(is_array($item) ? ($item['discount'] ?? 0) : ($item->discount ?? 0)));
+                                                $total = $subtotal - $discount;
+
+                                                $payments = $get('payments') ?? [];
+                                                $paid = collect($payments)->sum(fn($p) => (float)(is_array($p) ? ($p['amount'] ?? 0) : ($p->amount ?? 0)));
+                                                $balance = $total - $paid;
+
+                                                $balanceColor = $balance > 0 ? 'text-danger-600 dark:text-danger-400' : 'text-success-600 dark:text-success-400';
+
+                                                return new HtmlString('
+                                                    <div class="space-y-2 text-sm">
+                                                        <div class="flex justify-between">
+                                                            <span class="text-gray-500 dark:text-gray-400">Subtotal</span>
+                                                            <span>' . number_format($subtotal, 2) . '</span>
+                                                        </div>
+                                                        <div class="flex justify-between">
+                                                            <span class="text-gray-500 dark:text-gray-400">Discount</span>
+                                                            <span>- ' . number_format($discount, 2) . '</span>
+                                                        </div>
+                                                        <div class="border-t border-gray-200 dark:border-gray-700 pt-2 flex justify-between font-semibold text-base">
+                                                            <span>Total</span>
+                                                            <span>' . number_format($total, 2) . '</span>
+                                                        </div>
+                                                        <div class="border-t border-gray-200 dark:border-gray-700 pt-2 flex justify-between">
+                                                            <span class="text-gray-500 dark:text-gray-400">Paid</span>
+                                                            <span class="text-success-600 dark:text-success-400">' . number_format($paid, 2) . '</span>
+                                                        </div>
+                                                        <div class="border-t border-gray-200 dark:border-gray-700 pt-2 flex justify-between font-bold text-base">
+                                                            <span>Balance</span>
+                                                            <span class="' . $balanceColor . '">' . number_format($balance, 2) . '</span>
+                                                        </div>
+                                                    </div>
+                                                ');
+                                            }),
+                                    ]),
                             ])
-                            ->columnSpan(1),
+                            ->columnSpan(2),
                     ])
                     ->columnSpanFull(),
             ]);
@@ -172,12 +218,12 @@ class SaleResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('total')
                     ->label('Total')
-                    ->getStateUsing(fn (Sale $record): float => $record->total)
+                    ->getStateUsing(fn(Sale $record): float => $record->total)
                     ->numeric(decimalPlaces: 2)
                     ->sortable(false),
                 Tables\Columns\TextColumn::make('amount_paid')
                     ->label('Amount paid')
-                    ->getStateUsing(fn (Sale $record): float => $record->amount_paid)
+                    ->getStateUsing(fn(Sale $record): float => $record->amount_paid)
                     ->numeric(decimalPlaces: 2)
                     ->sortable(false),
                 Tables\Columns\TextColumn::make('sale_items_count')
