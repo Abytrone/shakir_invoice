@@ -11,7 +11,7 @@ return new class extends Migration {
         Schema::create('sales', function (Blueprint $table) {
             $table->id();
             $table->uuid('sale_uuid')->unique();
-            $table->string('reference')->unique();
+            $table->string('reference')->nullable()->unique();
             $table->foreignId('client_id')->constrained()->cascadeOnDelete();
             $table->softDeletes();
             $table->timestamps();

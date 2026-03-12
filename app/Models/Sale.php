@@ -27,12 +27,12 @@ class Sale extends Model
             if (empty($sale->sale_uuid)) {
                 $sale->sale_uuid = (string) Str::uuid();
             }
+        });
+
+        static::created(function (Sale $sale): void {
             if (empty($sale->reference)) {
-                $latest = static::withTrashed()->orderByDesc('id')->first();
-                $nextNumber = $latest && preg_match('/^SAL(\d+)$/', $latest->reference, $m)
-                    ? (int) $m[1] + 1
-                    : 1;
-                $sale->reference = 'SAL' . str_pad((string) $nextNumber, 6, '0', STR_PAD_LEFT);
+                $sale->reference = 'SAL' . str_pad((string) $sale->id, 6, '0', STR_PAD_LEFT);
+                $sale->saveQuietly();
             }
         });
     }
