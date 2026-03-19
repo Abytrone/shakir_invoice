@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\PaymentMethod;
 use App\Filament\Resources\SaleResource\Pages;
 use App\Models\Client;
 use App\Models\Sale;
@@ -134,17 +135,28 @@ class SaleResource extends Resource
                                             ->relationship()
                                             ->schema([
                                                 Forms\Components\Select::make('payment_method')
-                                                    ->options([
-                                                        'cash' => 'Cash',
-                                                        'bank_transfer' => 'Bank Transfer',
-                                                        'card' => 'Card',
-                                                        'mobile_money' => 'Mobile Money',
-                                                    ])
-                                                    ->required(),
+                                                    ->options(PaymentMethod::class)
+                                                    ->required()
+                                                    ->live()
+                                                    ->afterStateUpdated(function (Forms\Set $set): void {
+                                                        $set('payment_source', null);
+                                                        $set('source_number', null);
+                                                    })
+                                                    ->columnSpanFull(),
                                                 Forms\Components\TextInput::make('amount')
                                                     ->required()
                                                     ->numeric()
                                                     ->minValue(0.01),
+                                                Forms\Components\TextInput::make('payment_source')
+                                                    ->label('Source')
+                                                    ->placeholder(fn (Get $get): string => PaymentMethod::tryFrom($get('payment_method') ?? '')?->sourcePlaceholder() ?? 'Source name')
+                                                    ->required(fn (Get $get): bool => (bool) PaymentMethod::tryFrom($get('payment_method') ?? '')?->requiresSource())
+                                                    ->visible(fn (Get $get): bool => (bool) PaymentMethod::tryFrom($get('payment_method') ?? '')?->requiresSource()),
+                                                Forms\Components\TextInput::make('source_number')
+                                                    ->label('Source No.')
+                                                    ->placeholder(fn (Get $get): string => PaymentMethod::tryFrom($get('payment_method') ?? '')?->sourceNumberPlaceholder() ?? 'Number')
+                                                    ->required(fn (Get $get): bool => (bool) PaymentMethod::tryFrom($get('payment_method') ?? '')?->requiresSource())
+                                                    ->visible(fn (Get $get): bool => (bool) PaymentMethod::tryFrom($get('payment_method') ?? '')?->requiresSource()),
                                             ])
                                             ->columns(2)
                                             ->defaultItems(1)

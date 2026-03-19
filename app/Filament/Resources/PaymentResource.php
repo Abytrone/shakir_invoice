@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Constants\InvoiceStatus;
+use App\Enums\PaymentMethod;
 use App\Filament\Resources\PaymentResource\Pages;
 use App\Models\Invoice;
 use App\Models\Payment;
@@ -105,16 +106,28 @@ class PaymentResource extends Resource
                             ->prefixIcon('heroicon-m-calendar'),
 
                         Forms\Components\Select::make('payment_method')
-                            ->options([
-                                'cash' => 'Cash',
-                                'bank_transfer' => 'Bank Transfer',
-                                'card' => 'Credit Card',
-                                'mobile_money' => 'Mobile Money',
-                                'cheque' => 'Cheque',
-                                'other' => 'Other',
-                            ])
+                            ->options(PaymentMethod::class)
                             ->required()
-                            ->prefixIcon('heroicon-m-banknotes'),
+                            ->live()
+                            ->prefixIcon('heroicon-m-banknotes')
+                            ->afterStateUpdated(function (Forms\Set $set): void {
+                                $set('payment_source', null);
+                                $set('source_number', null);
+                            }),
+
+                        Forms\Components\TextInput::make('payment_source')
+                            ->label('Payment Source')
+                            ->placeholder(fn (Get $get): string => PaymentMethod::tryFrom($get('payment_method') ?? '')?->sourcePlaceholder() ?? 'Source name')
+                            ->required(fn (Get $get): bool => (bool) PaymentMethod::tryFrom($get('payment_method') ?? '')?->requiresSource())
+                            ->visible(fn (Get $get): bool => (bool) PaymentMethod::tryFrom($get('payment_method') ?? '')?->requiresSource())
+                            ->prefixIcon('heroicon-m-building-library'),
+
+                        Forms\Components\TextInput::make('source_number')
+                            ->label('Source Number')
+                            ->placeholder(fn (Get $get): string => PaymentMethod::tryFrom($get('payment_method') ?? '')?->sourceNumberPlaceholder() ?? 'Reference number')
+                            ->required(fn (Get $get): bool => (bool) PaymentMethod::tryFrom($get('payment_method') ?? '')?->requiresSource())
+                            ->visible(fn (Get $get): bool => (bool) PaymentMethod::tryFrom($get('payment_method') ?? '')?->requiresSource())
+                            ->prefixIcon('heroicon-m-hashtag'),
                     ])->columns(2),
 
                 Forms\Components\Section::make('Additional Information')
@@ -146,15 +159,6 @@ class PaymentResource extends Resource
 
     public static function table(Table $table): Table
     {
-        $paymentLabels = [
-            'cash' => 'Cash',
-            'bank_transfer' => 'Bank Transfer',
-            'card' => 'Credit Card',
-            'cheque' => 'Cheque',
-            'mobile_money' => 'Mobile Money',
-            'other' => 'Other',
-        ];
-
         return $table
             ->defaultSort('created_at', 'desc')
             ->columns([
@@ -187,23 +191,20 @@ class PaymentResource extends Resource
                 Tables\Columns\TextColumn::make('payment_method')
                     ->label('Payment Method')
                     ->badge()
-                    ->formatStateUsing(fn(string $state) => $paymentLabels[$state] ?? $state)
-                    ->icon(fn(string $state): string => match ($state) {
-                        'bank_transfer' => 'heroicon-m-building-library',
-                        'card' => 'heroicon-m-credit-card',
-                        'mobile_money' => 'heroicon-m-device-phone-mobile',
-                        'other' => 'heroicon-m-question-mark-circle',
-                        default => 'heroicon-m-banknotes',
-                    })
-                    ->color(fn(string $state): string => match ($state) {
-                        'cash' => 'success',
-                        'bank_transfer' => 'info',
-                        'card' => 'primary',
-                        'mobile_money' => 'warning',
-                        default => 'gray',
-                    })
                     ->sortable()
                     ->searchable(),
+
+                Tables\Columns\TextColumn::make('payment_source')
+                    ->label('Source')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: false)
+                    ->placeholder('—'),
+
+                Tables\Columns\TextColumn::make('source_number')
+                    ->label('Source No.')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: false)
+                    ->placeholder('—'),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Date')
@@ -249,13 +250,7 @@ class PaymentResource extends Resource
                         'refunded' => 'Refunded',
                     ]),
                 Tables\Filters\SelectFilter::make('payment_method')
-                    ->options([
-                        'cash' => 'Cash',
-                        'bank_transfer' => 'Bank Transfer',
-                        'card' => 'Credit Card',
-                        'mobile_money' => 'Mobile Money',
-                        'other' => 'Other',
-                    ]),
+                    ->options(PaymentMethod::class),
                 Tables\Filters\SelectFilter::make('type')
                     ->options([
                         Payment::TYPE_INVOICE => 'Invoice',

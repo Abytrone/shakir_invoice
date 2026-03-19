@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PaymentMethod;
 use App\Observers\PaymentObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -18,6 +19,7 @@ class Payment extends Model
     protected $casts = [
         'amount' => 'decimal:2',
         'payment_date' => 'datetime',
+        'payment_method' => PaymentMethod::class,
     ];
 
     public const TYPE_INVOICE = 'invoice';
