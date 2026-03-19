@@ -28,6 +28,11 @@ class Client extends Model
         return $this->hasMany(Quote::class);
     }
 
+    public function paymentSources(): HasMany
+    {
+        return $this->hasMany(ClientPaymentSource::class);
+    }
+
     /**
      * Payments made against this client's invoices or sales (via polymorphic payable).
      * Use Payment::whereHasMorph('payable', [Invoice::class], fn ($q) => $q->where('client_id', $id))

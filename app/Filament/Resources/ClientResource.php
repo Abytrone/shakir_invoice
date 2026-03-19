@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\PaymentMethod;
 use App\Filament\Resources\ClientResource\Pages;
 use App\Models\Client;
 use App\Services\PaystackService;
@@ -77,6 +78,47 @@ class ClientResource extends Resource
                             ->maxLength(65535)
                             ->columnSpanFull(),
                     ])->columns(1),
+
+                Forms\Components\Section::make('Payment Sources')
+                    ->icon('heroicon-o-credit-card')
+                    ->description('Saved payment sources for quicker payment entry.')
+                    ->collapsed(fn (string $context): bool => $context === 'create')
+                    ->schema([
+                        Forms\Components\Repeater::make('paymentSources')
+                            ->relationship()
+                            ->schema([
+                                Forms\Components\Select::make('payment_method')
+                                    ->options(
+                                        collect(PaymentMethod::cases())
+                                            ->filter(fn (PaymentMethod $m) => $m->requiresSource())
+                                            ->mapWithKeys(fn (PaymentMethod $m) => [$m->value => $m->getLabel()])
+                                            ->toArray()
+                                    )
+                                    ->required()
+                                    ->live()
+                                    ->afterStateUpdated(fn (Forms\Set $set) => $set('label', null))
+                                    ->prefixIcon('heroicon-m-banknotes'),
+                                Forms\Components\Select::make('label')
+                                    ->label('Source Name')
+                                    ->options(fn (Forms\Get $get): array => PaymentMethod::tryFrom($get('payment_method') ?? '')?->sourceOptions() ?? [])
+                                    ->required()
+                                    ->searchable()
+                                    ->prefixIcon('heroicon-m-tag'),
+                                Forms\Components\TextInput::make('source_number')
+                                    ->label('Number')
+                                    ->placeholder(fn (Forms\Get $get): string => PaymentMethod::tryFrom($get('payment_method') ?? '')?->sourceNumberPlaceholder() ?? 'Number')
+                                    ->required()
+                                    ->prefixIcon('heroicon-m-hashtag'),
+                                Forms\Components\Toggle::make('is_default')
+                                    ->label('Default')
+                                    ->inline(false),
+                            ])
+                            ->columns(4)
+                            ->defaultItems(0)
+                            ->reorderable(false)
+                            ->addActionLabel('Add payment source')
+                            ->columnSpanFull(),
+                    ]),
 
                 Forms\Components\Section::make('Additional Information')
                     ->icon('heroicon-o-document-text')

@@ -56,15 +56,48 @@ enum PaymentMethod: string implements HasLabel, HasIcon, HasColor
         return $this !== self::Cash;
     }
 
-    public function sourcePlaceholder(): string
+    /**
+     * @return array<string, string>
+     */
+    public function sourceOptions(): array
     {
         return match ($this) {
-            self::Cash => '',
-            self::BankTransfer => 'e.g., Ecobank, GCB Bank',
-            self::Card => 'e.g., Visa, Mastercard',
-            self::MobileMoney => 'e.g., MTN MoMo, Vodafone Cash',
-            self::Cheque => 'e.g., Issuing bank name',
-            self::Other => 'Source name',
+            self::MobileMoney => [
+                'MTN MoMo' => 'MTN MoMo',
+                'Telecel Cash' => 'Telecel Cash',
+                'AirtelTigo Cash' => 'AirtelTigo Cash',
+            ],
+            self::BankTransfer, self::Cheque => [
+                'GCB Bank' => 'GCB Bank',
+                'Ecobank Ghana' => 'Ecobank Ghana',
+                'Stanbic Bank' => 'Stanbic Bank',
+                'Standard Chartered Bank' => 'Standard Chartered Bank',
+                'Absa Bank Ghana' => 'Absa Bank Ghana',
+                'Fidelity Bank' => 'Fidelity Bank',
+                'Consolidated Bank Ghana' => 'Consolidated Bank Ghana (CBG)',
+                'CalBank' => 'CalBank',
+                'Access Bank Ghana' => 'Access Bank Ghana',
+                'Zenith Bank Ghana' => 'Zenith Bank Ghana',
+                'Republic Bank' => 'Republic Bank',
+                'Prudential Bank' => 'Prudential Bank',
+                'First National Bank' => 'First National Bank (FNB)',
+                'UBA Ghana' => 'United Bank for Africa (UBA)',
+                'Societe Generale Ghana' => 'Societe Generale Ghana',
+                'First Atlantic Bank' => 'First Atlantic Bank',
+                'Bank of Africa Ghana' => 'Bank of Africa Ghana',
+                'National Investment Bank' => 'National Investment Bank (NIB)',
+                'Agricultural Development Bank' => 'Agricultural Development Bank (ADB)',
+                'OmniBSIC Bank' => 'OmniBSIC Bank',
+            ],
+            self::Card => [
+                'Visa' => 'Visa',
+                'Mastercard' => 'Mastercard',
+                'Amex' => 'American Express',
+            ],
+            self::Other => [
+                'Other' => 'Other',
+            ],
+            self::Cash => [],
         };
     }
 

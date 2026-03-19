@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Constants\InvoiceStatus;
 use App\Enums\PaymentMethod;
 use App\Filament\Resources\PaymentResource\Pages;
+use App\Models\ClientPaymentSource;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Sale;
@@ -63,6 +64,8 @@ class PaymentResource extends Resource
                             ->label('Invoice Number')
                             ->prefixIcon('heroicon-m-document-text')
                             ->visible(fn(Get $get): bool => $get('type') === Payment::TYPE_INVOICE)
+                            ->live()
+                            ->afterStateUpdated(fn (Forms\Set $set) => $set('client_payment_source_id', null))
                             ->dehydrated(),
 
                         Forms\Components\Select::make('sale_id')
@@ -74,7 +77,9 @@ class PaymentResource extends Resource
                             ->label('Sale')
                             ->prefixIcon('heroicon-m-shopping-cart')
                             ->required(fn(Get $get): bool => $get('type') === Payment::TYPE_SALES)
-                            ->visible(fn(Get $get): bool => $get('type') === Payment::TYPE_SALES),
+                            ->visible(fn(Get $get): bool => $get('type') === Payment::TYPE_SALES)
+                            ->live()
+                            ->afterStateUpdated(fn (Forms\Set $set) => $set('client_payment_source_id', null)),
 
                         Forms\Components\TextInput::make('amount')
                             ->required()
@@ -110,24 +115,30 @@ class PaymentResource extends Resource
                             ->required()
                             ->live()
                             ->prefixIcon('heroicon-m-banknotes')
-                            ->afterStateUpdated(function (Forms\Set $set): void {
-                                $set('payment_source', null);
-                                $set('source_number', null);
-                            }),
+                            ->afterStateUpdated(fn (Forms\Set $set) => $set('client_payment_source_id', null)),
 
-                        Forms\Components\TextInput::make('payment_source')
+                        Forms\Components\Select::make('client_payment_source_id')
                             ->label('Payment Source')
-                            ->placeholder(fn (Get $get): string => PaymentMethod::tryFrom($get('payment_method') ?? '')?->sourcePlaceholder() ?? 'Source name')
-                            ->required(fn (Get $get): bool => (bool) PaymentMethod::tryFrom($get('payment_method') ?? '')?->requiresSource())
-                            ->visible(fn (Get $get): bool => (bool) PaymentMethod::tryFrom($get('payment_method') ?? '')?->requiresSource())
-                            ->prefixIcon('heroicon-m-building-library'),
+                            ->placeholder('Select a payment source')
+                            ->options(function (Get $get): array {
+                                $clientId = self::resolveClientId($get);
+                                $method = $get('payment_method');
+                                if (!$clientId || !$method) {
+                                    return [];
+                                }
 
-                        Forms\Components\TextInput::make('source_number')
-                            ->label('Source Number')
-                            ->placeholder(fn (Get $get): string => PaymentMethod::tryFrom($get('payment_method') ?? '')?->sourceNumberPlaceholder() ?? 'Reference number')
+                                return ClientPaymentSource::query()
+                                    ->where('client_id', $clientId)
+                                    ->where('payment_method', $method)
+                                    ->get()
+                                    ->mapWithKeys(fn (ClientPaymentSource $s) => [
+                                        $s->id => $s->displayLabel() . ($s->is_default ? ' ★' : ''),
+                                    ])
+                                    ->toArray();
+                            })
                             ->required(fn (Get $get): bool => (bool) PaymentMethod::tryFrom($get('payment_method') ?? '')?->requiresSource())
                             ->visible(fn (Get $get): bool => (bool) PaymentMethod::tryFrom($get('payment_method') ?? '')?->requiresSource())
-                            ->prefixIcon('heroicon-m-hashtag'),
+                            ->prefixIcon('heroicon-m-bookmark'),
                     ])->columns(2),
 
                 Forms\Components\Section::make('Additional Information')
@@ -272,6 +283,23 @@ class PaymentResource extends Resource
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    public static function resolveClientId(Get $get): ?int
+    {
+        $type = $get('type');
+
+        if ($type === Payment::TYPE_INVOICE) {
+            $invoiceId = $get('invoice_id');
+            return $invoiceId ? Invoice::find($invoiceId)?->client_id : null;
+        }
+
+        if ($type === Payment::TYPE_SALES) {
+            $saleId = $get('sale_id');
+            return $saleId ? Sale::find($saleId)?->client_id : null;
+        }
+
+        return null;
     }
 
     public static function getRelations(): array

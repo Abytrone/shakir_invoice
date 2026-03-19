@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Enums\PaymentMethod;
 use App\Filament\Resources\SaleResource\Pages;
 use App\Models\Client;
+use App\Models\ClientPaymentSource;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\Stock;
@@ -46,6 +47,7 @@ class SaleResource extends Resource
                                     ->searchable()
                                     ->preload()
                                     ->required()
+                                    ->live()
                                     ->label('Client')
                                     ->columnSpanFull(),
                                 Forms\Components\Repeater::make('saleItems')
@@ -138,23 +140,30 @@ class SaleResource extends Resource
                                                     ->options(PaymentMethod::class)
                                                     ->required()
                                                     ->live()
-                                                    ->afterStateUpdated(function (Forms\Set $set): void {
-                                                        $set('payment_source', null);
-                                                        $set('source_number', null);
-                                                    })
+                                                    ->afterStateUpdated(fn (Forms\Set $set) => $set('client_payment_source_id', null))
                                                     ->columnSpanFull(),
                                                 Forms\Components\TextInput::make('amount')
                                                     ->required()
                                                     ->numeric()
                                                     ->minValue(0.01),
-                                                Forms\Components\TextInput::make('payment_source')
-                                                    ->label('Source')
-                                                    ->placeholder(fn (Get $get): string => PaymentMethod::tryFrom($get('payment_method') ?? '')?->sourcePlaceholder() ?? 'Source name')
-                                                    ->required(fn (Get $get): bool => (bool) PaymentMethod::tryFrom($get('payment_method') ?? '')?->requiresSource())
-                                                    ->visible(fn (Get $get): bool => (bool) PaymentMethod::tryFrom($get('payment_method') ?? '')?->requiresSource()),
-                                                Forms\Components\TextInput::make('source_number')
-                                                    ->label('Source No.')
-                                                    ->placeholder(fn (Get $get): string => PaymentMethod::tryFrom($get('payment_method') ?? '')?->sourceNumberPlaceholder() ?? 'Number')
+                                                Forms\Components\Select::make('client_payment_source_id')
+                                                    ->label('Payment Source')
+                                                    ->options(function (Get $get): array {
+                                                        $clientId = $get('../../client_id');
+                                                        $method = $get('payment_method');
+                                                        if (!$clientId || !$method) {
+                                                            return [];
+                                                        }
+
+                                                        return ClientPaymentSource::query()
+                                                            ->where('client_id', $clientId)
+                                                            ->where('payment_method', $method)
+                                                            ->get()
+                                                            ->mapWithKeys(fn (ClientPaymentSource $s) => [
+                                                                $s->id => $s->displayLabel() . ($s->is_default ? ' ★' : ''),
+                                                            ])
+                                                            ->toArray();
+                                                    })
                                                     ->required(fn (Get $get): bool => (bool) PaymentMethod::tryFrom($get('payment_method') ?? '')?->requiresSource())
                                                     ->visible(fn (Get $get): bool => (bool) PaymentMethod::tryFrom($get('payment_method') ?? '')?->requiresSource()),
                                             ])
