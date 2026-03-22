@@ -18,7 +18,7 @@ class RoleAndPermissionSeeder extends Seeder
         $user = Role::firstOrCreate(['name' => 'user']);
 
         // Resource permissions based on Filament Shield's structure
-        $resources = ['invoice', 'quote', 'client', 'product', 'role', 'user', 'stock', 'sale', 'payment', 'auth_payment'];
+        $resources = ['invoice', 'quote', 'client', 'product', 'role', 'user', 'stock', 'sale', 'payment', 'auth_payment', 'stock_adjustment'];
         $resourcePermissions = [
             'view_any',
             'view',
