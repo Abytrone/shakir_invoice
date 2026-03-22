@@ -241,12 +241,16 @@ class SaleResource extends Resource
                     ->label('Total')
                     ->getStateUsing(fn(Sale $record): float => $record->total)
                     ->numeric(decimalPlaces: 2)
-                    ->sortable(false),
+                    ->sortable(false)
+                    ->color('primary')
+                    ->weight('bold'),
                 Tables\Columns\TextColumn::make('amount_paid')
                     ->label('Amount paid')
                     ->getStateUsing(fn(Sale $record): float => $record->amount_paid)
                     ->numeric(decimalPlaces: 2)
-                    ->sortable(false),
+                    ->sortable(false)
+                    ->color(fn (Sale $record): string => $record->amount_paid >= $record->total ? 'success' : 'danger')
+                    ->weight('bold'),
                 Tables\Columns\TextColumn::make('sale_items_count')
                     ->label('Items')
                     ->counts('saleItems')
@@ -275,7 +279,8 @@ class SaleResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ->recordUrl(null);
     }
 
     public static function getEloquentQuery(): Builder

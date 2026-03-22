@@ -1,0 +1,20 @@
+---
+description: Filament resource table conventions
+globs: app/Filament/Resources/**/*.php
+alwaysApply: false
+---
+
+# Filament Resource Table Conventions
+
+When creating or modifying a Filament resource with a table, always disable row click navigation:
+
+```php
+return $table
+    ->columns([...])
+    ->filters([...])
+    ->actions([...])
+    ->bulkActions([...])
+    ->recordUrl(null);
+```
+
+`->recordUrl(null)` must be chained at the end of every table definition. Clicking a table row should never trigger navigation.

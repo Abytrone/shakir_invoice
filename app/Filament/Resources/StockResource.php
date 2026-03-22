@@ -33,6 +33,8 @@ class StockResource extends Resource
             ->schema([
                 Forms\Components\Select::make('product_id')
                     ->relationship('product', 'name')
+                    ->searchable()
+                    ->preload()
                     ->live()
                     ->required()
                     ->columnSpanFull()
@@ -118,7 +120,8 @@ class StockResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ->recordUrl(null);
     }
 
     public static function getRelations(): array
