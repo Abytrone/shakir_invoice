@@ -336,13 +336,17 @@ class InvoiceResource extends Resource
         array     $items,
         ?string   $taxType,
         ?string   $discountType,
-        ?float    $taxRate,
-        ?float    $taxAmount,
-        ?float    $discountRate,
-        ?float    $discountAmount,
+        ?string   $taxRate,
+        ?string   $taxAmount,
+        ?string   $discountRate,
+        ?string   $discountAmount,
         ?\Closure $callableSet = null
     ): void
     {
+        $taxRate = (float)$taxRate;
+        $taxAmount = (float)$taxAmount;
+        $discountRate = (float)$discountRate;
+        $discountAmount = (float)$discountAmount;
         $subtotal = 0;
 
         $selectedProducts = collect($items)
