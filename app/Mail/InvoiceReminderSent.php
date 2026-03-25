@@ -23,7 +23,7 @@ class InvoiceReminderSent extends Mailable implements ShouldQueue
     public function __construct(public Invoice $invoice, public int $daysBeforeDueDate)
     {
         $this->invoicePaymentInitUrl = URL::signedRoute('payments.initialize', ['invoice' => $invoice]);
-        $this->invoiceDownloadUrl = URL::signedRoute('invoice.download', ['invoice' => $invoice]);
+        $this->invoiceDownloadUrl = URL::signedRoute('invoices.download', ['invoice' => $invoice]);
 
     }
 

@@ -35,28 +35,62 @@ class Invoice extends Model
 
     public function markAsPaid(): void
     {
-        $this->update(['status' => 'paid']);
+        $this->update(['status' => InvoiceStatus::PAID]);
     }
+
+    public function isPaid(): bool
+    {
+        return $this->payments->sum('amount') >= $this->total;
+    }
+
+    public function isPartial(): bool
+    {
+        $amountPaid = $this->payments->sum('amount');
+
+        return $amountPaid > 0 && $amountPaid < $this->total;
+    }
+
 
     public function markAsOverdue(): void
     {
-        $this->update(['status' => 'overdue']);
+        $this->update(['status' => InvoiceStatus::OVERDUE]);
+    }
+
+    public function isOverdue(): bool
+    {
+        return $this->due_date->isBefore(Carbon::today());
     }
 
     public function markAsSent(): void
     {
-        $this->update(['status' => 'sent']);
+        $this->update(['status' => InvoiceStatus::SENT]);
+    }
+
+    public function isSent(): bool
+    {
+        return $this->status === InvoiceStatus::SENT;
     }
 
     public function markAsDraft(): void
     {
-        $this->update(['status' => 'draft']);
+        $this->update(['status' => InvoiceStatus::DRAFT]);
+    }
+
+    public function isDraft(): bool
+    {
+        return $this->status === InvoiceStatus::DRAFT;
     }
 
     public function markAsCancelled(): void
     {
-        $this->update(['status' => 'cancelled']);
+        $this->update(['status' => InvoiceStatus::CANCELLED]);
     }
+
+    public function isCancelled(): bool
+    {
+        return $this->status === InvoiceStatus::CANCELLED;
+    }
+
 
     protected function subtotal(): Attribute
     {
@@ -146,32 +180,6 @@ class Invoice extends Model
             ->where('status', PaymentStatus::COMPLETED);
     }
 
-    public function isSent(): bool
-    {
-        return $this->status === 'sent';
-    }
-
-    public function isOverdue(): bool
-    {
-        return $this->due_date->isBefore(Carbon::today());
-    }
-
-    public function isDraft(): bool
-    {
-        return $this->status === 'draft';
-    }
-
-    public function isPaid(): bool
-    {
-        return $this->payments->sum('amount') >= $this->total;
-    }
-
-    public function isPartial(): bool
-    {
-        $amountPaid = $this->payments->sum('amount');
-
-        return $amountPaid > 0 && $amountPaid < $this->total;
-    }
 
     protected function amountPaid(): Attribute
     {
