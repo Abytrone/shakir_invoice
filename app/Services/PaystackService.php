@@ -2,9 +2,14 @@
 
 namespace App\Services;
 
+use App\Constants\InvoiceStatus;
+use App\Mail\InvoicePaid;
+use App\Models\Client;
+use App\Models\Invoice;
 use Http;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class PaystackService
 {
@@ -84,6 +89,60 @@ class PaystackService
             return null;
         }
 
+    }
+
+    public function savePaymentAfterVerification($response): bool
+    {
+        $ref = request()->reference;
+
+
+        info('meta data', [$response['data']['metadata']['custom_fields']]);
+
+        $meta = collect($response['data']['metadata']['custom_fields']);
+
+        // if this is the first time saving the payment and the user has auth payment email
+        // update the authorization data
+        if ($meta->contains('variable_name', 'auth_email')) {
+            $authEmailValue = $meta->firstWhere('variable_name', 'auth_email')['value'];
+            Client::query()
+                ->where('auth_email', $authEmailValue)
+                ->update(['auth_res' => json_encode($response['data']['authorization'])]);
+
+        }
+
+
+        $invoiceNumber = $meta->firstWhere('variable_name', 'invoice_number')['value'];
+
+        $amount = $response['data']['amount'] / 100;
+        $channel = $response['data']['channel'];
+
+        $invoice = Invoice::where('invoice_number', $invoiceNumber)->first();
+
+        if (!$invoice) {
+            return false;
+        }
+
+        $payment = $invoice->payments()
+            ->firstOrCreate(
+                ['reference_number' => $ref], [
+                'amount' => $amount,
+                'notes' => '...',
+                'payment_method' => $channel,
+            ]);
+
+        if ($invoice->isPaid()) {
+            $invoice->update(['status' => InvoiceStatus::PAID]);
+        }
+
+        if ($invoice->isPartial()) {
+            $invoice->update(['status' => InvoiceStatus::PARTIAL]);
+        }
+
+        if ($invoice->client->hasEmail()) {
+            Mail::to($invoice->client->email)->send(new InvoicePaid($invoice, $payment));
+        }
+
+        return true;
     }
 
 

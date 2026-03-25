@@ -3,7 +3,9 @@
 namespace App\Mail;
 
 use App\Models\Invoice;
+use App\Models\Payment;
 use Illuminate\Bus\Queueable;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -20,10 +22,10 @@ class InvoicePaid extends Mailable
     /**
      * Create a new message instance.
      */
-    public function __construct(public Invoice $invoice, public float $amount)
+    public function __construct(public Invoice $invoice, public Model $payment)
     {
-        $this->invoiceDownloadUrl = URL::signedRoute('invoice.download', ['invoice' => $invoice]);
-        $this->invoicePaymentReceiptUrl = URL::signedRoute('payments.receipt', ['invoice' => $invoice]);
+        $this->invoiceDownloadUrl = URL::signedRoute('invoices.download', ['invoice' => $invoice]);
+        $this->invoicePaymentReceiptUrl = URL::signedRoute('payments.receipt', ['payment' => $payment]);
 
     }
 

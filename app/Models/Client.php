@@ -21,7 +21,7 @@ class Client extends Model
 
     public function shouldBeBillAutomatically(): bool
     {
-        return $this->auth_email !== null && $this->authemail !== '';
+        return $this->auth_email !== null && $this->auth_email !== '';
     }
     public function quotes(): HasMany
     {

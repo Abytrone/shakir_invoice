@@ -34,35 +34,44 @@ class AutoBillClient extends Command
             ->whereNotIn('status', [InvoiceStatus::DRAFT, InvoiceStatus::PAID])
             ->where('is_recurring', true)
             ->withWhereHas('client', function ($query) {
-                $query->where('auth_email', '!=', null)
-                    ->where('auth_res', '!=', null);
+                $query->whereNotNull('auth_email')
+                    ->whereNotNull('auth_res');
             })
             ->get();
 
         $billedCount = 0;
         foreach ($authBillInvoice as $invoice) {
-            if (!$invoice->isOverdue()) {
-                continue;
-            }
-
-            if (!$invoice->client->shouldBeBillAutomatically()) {
-                continue;
-            }
 
             $res = json_decode($invoice->client->auth_res);
 
             $res = $paystackService->chargeAuthorization($invoice->client->auth_email, $res->authorization_code, $invoice->total);
+
             $data = $res->json();
+
+            if (!$data['status']) {
+                $this->error("Failed to bill client {$invoice->client->name} for invoice #{$invoice->id}");
+                continue;
+            }
+
             if ($data['data']['status'] == 'failed') {
                 $this->error("Failed to bill client {$invoice->client->name} for invoice #{$invoice->id}");
                 continue;
             }
-            $billedCount++;
+
 
             $verify = $paystackService->verify($data['data']['reference']);
 
-            if(!$verify){
+            // save payment to db
+
+            if (!$verify) {
                 $this->error("Failed to verify payment for client {$invoice->client->name} for invoice #{$invoice->id}");
+            }
+            $billedCount++;
+            $saved = $paystackService->savePaymentAfterVerification($verify);
+
+            if (!$saved) {
+                $this->error("Failed to save payment for client {$invoice->client->name} for invoice #{$invoice->id}");
+
             }
 
             //todo: send email notification
