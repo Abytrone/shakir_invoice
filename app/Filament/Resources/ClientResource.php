@@ -4,19 +4,15 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ClientResource\Pages;
 use App\Models\Client;
-use App\Services\PaystackService;
+use Exception;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
-use Filament\Support\Enums\MaxWidth;
 use Filament\Tables;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use PHPUnit\Framework\TestStatus\Notice;
 
 class ClientResource extends Resource
 {
@@ -57,7 +53,7 @@ class ClientResource extends Resource
                             ->tel()
                             ->maxLength(255)
                             ->prefixIcon('heroicon-m-phone'),
-                    ])->columns(2),
+                    ])->columns(),
 
                 Forms\Components\Section::make('Company Details')
                     ->icon('heroicon-o-building-office-2')
@@ -68,7 +64,7 @@ class ClientResource extends Resource
                         Forms\Components\TextInput::make('tax_number')
                             ->maxLength(255)
                             ->prefixIcon('heroicon-m-document-text'),
-                    ])->columns(2),
+                    ])->columns(),
 
                 Forms\Components\Section::make('Address')
                     ->icon('heroicon-o-map-pin')
@@ -89,6 +85,9 @@ class ClientResource extends Resource
             ]);
     }
 
+    /**
+     * @throws Exception
+     */
     public static function table(Table $table): Table
     {
         return $table
