@@ -75,17 +75,6 @@ class PaystackService
         }
     }
 
-    public function verifyV2($ref)
-    {
-        try {
-            return Http::withHeaders(['Authorization' => 'Bearer ' . config('services.paystack.live_secret_key')])
-                ->get('https://api.paystack.co/transaction/verify/' . $ref);
-        } catch (\Exception $e) {
-            Log::info('failed to verify payment: ' . $e->getMessage());
-            return null;
-        }
-    }
-
     public function refundPayment(string $reference, float|int $param)
     {
         try {
