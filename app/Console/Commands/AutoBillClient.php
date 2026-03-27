@@ -49,29 +49,29 @@ class AutoBillClient extends Command
             $data = $res->json();
 
             if (!$data['status']) {
-                $this->error("Failed to bill client {$invoice->client->name} for invoice #{$invoice->id}");
+                $this->error("Transaction error: Failed to bill client {$invoice->client->name} for invoice #{$invoice->id}");
                 continue;
             }
 
             if ($data['data']['status'] == 'failed') {
-                $this->error("Failed to bill client {$invoice->client->name} for invoice #{$invoice->id}");
+                $this->error("Payment error: Failed to bill client {$invoice->client->name} for invoice #{$invoice->id}");
                 continue;
             }
 
 
             $verify = $paystackService->verify($data['data']['reference']);
+            $verifyRes = json_decode($verify);
 
-            // save payment to db
-
-            if (!$verify) {
+            if (!$verifyRes->status) {
                 $this->error("Failed to verify payment for client {$invoice->client->name} for invoice #{$invoice->id}");
+                continue;
             }
+
             $billedCount++;
             $saved = $paystackService->savePaymentAfterVerification($verify);
 
             if (!$saved) {
                 $this->error("Failed to save payment for client {$invoice->client->name} for invoice #{$invoice->id}");
-
             }
 
             //todo: send email notification

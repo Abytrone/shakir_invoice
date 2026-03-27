@@ -75,6 +75,17 @@ class PaystackService
         }
     }
 
+    public function verifyV2($ref)
+    {
+        try {
+            return Http::withHeaders(['Authorization' => 'Bearer ' . config('services.paystack.live_secret_key')])
+                ->get('https://api.paystack.co/transaction/verify/' . $ref);
+        } catch (\Exception $e) {
+            Log::info('failed to verify payment: ' . $e->getMessage());
+            return null;
+        }
+    }
+
     public function refundPayment(string $reference, float|int $param)
     {
         try {
@@ -93,11 +104,6 @@ class PaystackService
 
     public function savePaymentAfterVerification($response): bool
     {
-        $ref = request()->reference;
-
-
-        info('meta data', [$response['data']['metadata']['custom_fields']]);
-
         $meta = collect($response['data']['metadata']['custom_fields']);
 
         // if this is the first time saving the payment and the user has auth payment email
@@ -124,7 +130,7 @@ class PaystackService
 
         $payment = $invoice->payments()
             ->firstOrCreate(
-                ['reference_number' => $ref], [
+                ['reference_number' => $response['data']['reference']], [
                 'amount' => $amount,
                 'notes' => '...',
                 'payment_method' => $channel,
