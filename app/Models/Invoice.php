@@ -180,6 +180,11 @@ class Invoice extends Model
             ->where('status', PaymentStatus::COMPLETED);
     }
 
+    public function allPayments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
 
     protected function amountPaid(): Attribute
     {

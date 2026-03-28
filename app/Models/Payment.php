@@ -18,6 +18,8 @@ class Payment extends Model
     protected $casts = [
         'amount' => 'decimal:2',
         'payment_date' => 'datetime',
+        'last_attempted_at' => 'datetime',
+        'attempts' => 'integer',
     ];
 
     public function invoice(): BelongsTo
