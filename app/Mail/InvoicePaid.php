@@ -22,7 +22,7 @@ class InvoicePaid extends Mailable
     /**
      * Create a new message instance.
      */
-    public function __construct(public Invoice $invoice, public Model $payment)
+    public function __construct(public Invoice $invoice, public Model $payment, public $amount)
     {
         $this->invoiceDownloadUrl = URL::signedRoute('invoices.download', ['invoice' => $invoice]);
         $this->invoicePaymentReceiptUrl = URL::signedRoute('payments.receipt', ['payment' => $payment]);

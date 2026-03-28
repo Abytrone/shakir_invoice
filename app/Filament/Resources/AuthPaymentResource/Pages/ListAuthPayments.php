@@ -42,12 +42,13 @@ class ListAuthPayments extends ListRecords
                             ->send(new VerificationUrlSent(
                                 $data['auth_email'],
                                 $data['authorization_url'],
-                                $data['$amount']));
+                                $data['amount']));
                     } catch (\Exception $e) {
                         \Illuminate\Log\log('failed to send email: ' . $e->getMessage());
-                    }
 
+                    }
                     return $model::create($data);
+
                 }),
         ];
     }

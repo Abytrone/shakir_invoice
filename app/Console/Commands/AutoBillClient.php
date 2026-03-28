@@ -6,6 +6,7 @@ use App\Constants\InvoiceStatus;
 use App\Models\Invoice;
 use App\Services\PaystackService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 class AutoBillClient extends Command
 {
@@ -43,13 +44,13 @@ class AutoBillClient extends Command
         foreach ($authBillInvoice as $invoice) {
 
             $res = json_decode($invoice->client->auth_res);
-
             $res = $paystackService->chargeAuthorization($invoice->client->auth_email, $res->authorization_code, $invoice->total);
 
             $data = $res->json();
 
             if (!$data['status']) {
                 $this->error("Transaction error: Failed to bill client {$invoice->client->name} for invoice #{$invoice->id}");
+                Log::error("Transaction error", [$data]);
                 continue;
             }
 
@@ -68,7 +69,7 @@ class AutoBillClient extends Command
             }
 
             $billedCount++;
-            $saved = $paystackService->savePaymentAfterVerification($verify);
+            $saved = $paystackService->savePaymentAfterVerification($verify, $invoice);
 
             if (!$saved) {
                 $this->error("Failed to save payment for client {$invoice->client->name} for invoice #{$invoice->id}");
