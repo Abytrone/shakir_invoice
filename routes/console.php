@@ -39,8 +39,8 @@ Schedule::command(SchedulerIsStillRunning::class)
     ->appendOutputTo(storage_path('logs/scheduler-is-still-running.log'));
 
 
-Schedule::command(AutoBillClient::class)
-    ->dailyAt('00:00')
-    ->timeZone('Africa/Accra')
-    ->appendOutputTo(storage_path('logs/auto-bill-client.log'));
+//Schedule::command(AutoBillClient::class)
+//    ->dailyAt('00:00')
+//    ->timeZone('Africa/Accra')
+//    ->appendOutputTo(storage_path('logs/auto-bill-client.log'));
 
