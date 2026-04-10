@@ -36,7 +36,7 @@ class InvoiceResource extends Resource
                         Forms\Components\TextInput::make('invoice_number')
                             ->label('Invoice Number')
                             ->disabled()
-                            ->visible(fn(string $context): bool => $context === 'edit')
+                            ->visible(fn (string $context): bool => $context === 'edit')
                             ->dehydrated(false) // Don't try to save this field
                             ->columnSpanFull(),
 
@@ -54,19 +54,19 @@ class InvoiceResource extends Resource
                             ->label('Issue Date')
                             ->helperText('The date when the invoice is issued')
                             ->maxDate(now()),
-//                            ->live()
-//                            ->afterStateUpdated(function (Get $get, Set $set, ?string $state) {
-//                                if ($state) {
-//                                    $set('due_date', \Carbon\Carbon::parse($state)->addDay()->format('Y-m-d'));
-//                                }
-//                            }),
+                        //                            ->live()
+                        //                            ->afterStateUpdated(function (Get $get, Set $set, ?string $state) {
+                        //                                if ($state) {
+                        //                                    $set('due_date', \Carbon\Carbon::parse($state)->addDay()->format('Y-m-d'));
+                        //                                }
+                        //                            }),
 
                         Forms\Components\DatePicker::make('due_date')
                             ->required()
                             ->default(now()->addDay())
                             ->label('Due Date')
                             ->helperText('The date when the invoice payment is due')
-                            ->minDate(fn(callable $get) => $get('issue_date')),
+                            ->minDate(fn (callable $get) => $get('issue_date')),
 
                         Forms\Components\Select::make('status')
                             ->options([
@@ -113,12 +113,13 @@ class InvoiceResource extends Resource
                                             ->label('Product')
                                             ->helperText('Select a product to add to the invoice')
                                             ->live()
-                                            ->getOptionLabelFromRecordUsing(fn(Product $record) => $record->name)
+                                            ->getOptionLabelFromRecordUsing(fn (Product $record) => $record->name)
                                             ->disableOptionWhen(function ($value, $state, Get $get) {
-                                                return collect($get('../*.product_id'))
-                                                    ->reject(fn($id) => $id == $state)
-                                                    ->filter()
-                                                    ->contains($value);
+                                                return static::shouldDisableDuplicateProductOption(
+                                                    $value,
+                                                    $state,
+                                                    $get('../*.product_id'),
+                                                );
                                             })
                                             ->afterStateUpdated(function ($state, Set $set, Get $get) {
                                                 if ($state) {
@@ -149,7 +150,7 @@ class InvoiceResource extends Resource
                                             ->label('Unit Price')
                                             ->helperText('Price per unit')
                                             ->live()
-                                            ->columnSpan(1)
+                                            ->columnSpan(1),
                                     ]),
                             ])
                             ->defaultItems(1)
@@ -284,15 +285,14 @@ class InvoiceResource extends Resource
                                 'monthly' => 'Monthly',
                                 'yearly' => 'Yearly',
                             ])
-                            ->visible(fn(Get $get) => $get('is_recurring'))
-                            ->required(fn(Get $get) => $get('is_recurring'))
+                            ->visible(fn (Get $get) => $get('is_recurring'))
+                            ->required(fn (Get $get) => $get('is_recurring'))
                             ->label('Frequency')
                             ->helperText('How often should the invoice be generated'),
 
                     ])->columns(),
             ]);
     }
-
 
     protected static function updateInnerTotals(Get $get, Set $set): void
     {
@@ -330,27 +330,25 @@ class InvoiceResource extends Resource
         );
     }
 
-
     protected static function updateTotalsV2(
-        Set       $set,
-        array     $items,
-        ?string   $taxType,
-        ?string   $discountType,
-        ?float    $taxRate,
-        ?float    $taxAmount,
-        ?float    $discountRate,
-        ?float    $discountAmount,
+        Set $set,
+        array $items,
+        ?string $taxType,
+        ?string $discountType,
+        ?float $taxRate,
+        ?float $taxAmount,
+        ?float $discountRate,
+        ?float $discountAmount,
         ?\Closure $callableSet = null
-    ): void
-    {
+    ): void {
         $subtotal = 0;
 
         $selectedProducts = collect($items)
-            ->filter(fn($item) => !empty($item['product_id'])
-                && !empty($item['quantity']));
+            ->filter(fn ($item) => ! empty($item['product_id'])
+                && ! empty($item['quantity']));
 
         foreach ($selectedProducts as $item) {
-            $subtotal += (float)$item['unit_price'] * (int)$item['quantity'];
+            $subtotal += (float) $item['unit_price'] * (int) $item['quantity'];
         }
 
         // Tax Calculation
@@ -390,13 +388,13 @@ class InvoiceResource extends Resource
     protected static function updateTotals(Get $get, Set $set): void
     {
         $selectedProducts = collect($get('items'))
-            ->filter(fn($item) => !empty($item['product_id'])
-                && !empty($item['quantity']));
+            ->filter(fn ($item) => ! empty($item['product_id'])
+                && ! empty($item['quantity']));
         $subtotal = 0;
 
         Log::debug('selected products', [$selectedProducts]);
         foreach ($selectedProducts as $item) {
-            $subtotal += (float)$item['unit_price'] * (int)$item['quantity'];
+            $subtotal += (float) $item['unit_price'] * (int) $item['quantity'];
         }
 
         $taxType = $get('tax_type') ?? 'percent';
@@ -404,24 +402,24 @@ class InvoiceResource extends Resource
 
         // Tax Calculation
         if ($taxType === 'fixed') {
-            $taxAmount = (float)$get('tax_amount');
+            $taxAmount = (float) $get('tax_amount');
             // In Fixed mode, we trust the amount explicitly.
             // We set the rate just for UI consistency if they switch back, but the DB truth is the amount.
             $rate = $subtotal > 0 ? ($taxAmount / $subtotal) * 100 : 0;
             $set('tax_rate', number_format($rate, 2, '.', ''));
         } else {
-            $tax_rate = (float)$get('tax_rate');
+            $tax_rate = (float) $get('tax_rate');
             $taxAmount = $subtotal * ($tax_rate / 100);
             $set('tax_amount', number_format($taxAmount, 2, '.', ''));
         }
 
         // Discount Calculation
         if ($discountType === 'fixed') {
-            $discountAmount = (float)$get('discount_amount');
+            $discountAmount = (float) $get('discount_amount');
             $rate = $subtotal > 0 ? ($discountAmount / $subtotal) * 100 : 0;
             $set('discount_rate', number_format($rate, 2, '.', ''));
         } else {
-            $discount_rate = (float)$get('discount_rate');
+            $discount_rate = (float) $get('discount_rate');
             $discountAmount = $subtotal * ($discount_rate / 100);
             $set('discount_amount', number_format($discountAmount, 2, '.', ''));
         }
@@ -447,7 +445,7 @@ class InvoiceResource extends Resource
                 Tables\Columns\TextColumn::make('client.name')
                     ->searchable()
                     ->sortable()
-                    ->description(fn(Invoice $record) => $record->client->email)
+                    ->description(fn (Invoice $record) => $record->client->email)
                     ->icon('heroicon-m-user'),
 
                 Tables\Columns\TextColumn::make('issue_date')
@@ -459,7 +457,7 @@ class InvoiceResource extends Resource
                     ->date('M d, Y')
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->sortable()
-                    ->color(fn(Invoice $record) => $record->due_date < now() && $record->status !== 'paid' ? 'danger' : 'gray'),
+                    ->color(fn (Invoice $record) => $record->due_date < now() && $record->status !== 'paid' ? 'danger' : 'gray'),
 
                 Tables\Columns\TextColumn::make('total')
                     ->label('Total')
@@ -480,14 +478,14 @@ class InvoiceResource extends Resource
 
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
-                    ->icon(fn(string $state): string => match ($state) {
+                    ->icon(fn (string $state): string => match ($state) {
                         'draft' => 'heroicon-m-pencil-square',
                         'sent' => 'heroicon-m-paper-airplane',
                         'paid' => 'heroicon-m-check-circle',
                         'overdue' => 'heroicon-m-exclamation-circle',
                         'partial' => 'heroicon-m-banknotes',
                     })
-                    ->color(fn(string $state): string => match ($state) {
+                    ->color(fn (string $state): string => match ($state) {
                         'draft' => 'gray',
                         'sent' => 'info',
                         'paid' => 'success',
@@ -519,38 +517,38 @@ class InvoiceResource extends Resource
                         return $query
                             ->when(
                                 $data['created_from'],
-                                fn(Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
+                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
                             )
                             ->when(
                                 $data['created_until'],
-                                fn(Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
+                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
                     }),
                 Tables\Filters\Filter::make('is_recurring')
-                    ->query(fn(Builder $query): Builder => $query->where('is_recurring', true))
+                    ->query(fn (Builder $query): Builder => $query->where('is_recurring', true))
                     ->label('Recurring Only'),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\Action::make('print')
                         ->icon('heroicon-o-printer')
-                        ->url(fn(Invoice $record): string => route('invoices.print', $record))
+                        ->url(fn (Invoice $record): string => route('invoices.print', $record))
                         ->openUrlInNewTab(),
 
                     Tables\Actions\Action::make('download')
                         ->icon('heroicon-o-arrow-down-tray')
-                        ->url(fn(Invoice $record): string => URL::signedRoute('invoices.download', $record))
+                        ->url(fn (Invoice $record): string => URL::signedRoute('invoices.download', $record))
                         ->openUrlInNewTab(),
 
                     Tables\Actions\Action::make('download_quotation')
                         ->icon('heroicon-o-arrow-down-tray')
-                        ->url(fn(Invoice $record): string => URL::signedRoute('invoices.download', [
+                        ->url(fn (Invoice $record): string => URL::signedRoute('invoices.download', [
                             'invoice' => $record,
                             'asQuotation' => true]))
                         ->openUrlInNewTab(),
 
                     Tables\Actions\Action::make('send')
-                        ->label(fn(Invoice $record) => $record->status == 'draft' ? 'Send' : 'Resend')
+                        ->label(fn (Invoice $record) => $record->status == 'draft' ? 'Send' : 'Resend')
                         ->icon('heroicon-o-paper-airplane')
                         ->action(function (Invoice $record) {
                             $record->update(['status' => 'sent']);
@@ -589,7 +587,7 @@ class InvoiceResource extends Resource
 
                             \Filament\Notifications\Notification::make()
                                 ->title('Invoice Replicated')
-                                ->body('New invoice created for next month: ' . $newInvoice->invoice_number)
+                                ->body('New invoice created for next month: '.$newInvoice->invoice_number)
                                 ->success()
                                 ->send();
                         })
@@ -659,11 +657,20 @@ class InvoiceResource extends Resource
     }
 
     /**
-     * @param ?float $number
-     * @return float
+     * Disallow choosing a product if another invoice line already uses it; the current row may keep its selection.
+     *
+     * @param  iterable<int, mixed>|\Illuminate\Support\Collection|null  $allRepeaterProductIds
      */
+    public static function shouldDisableDuplicateProductOption(mixed $optionValue, mixed $currentRowProductId, mixed $allRepeaterProductIds): bool
+    {
+        return collect($allRepeaterProductIds ?? [])
+            ->reject(fn ($id) => $id == $currentRowProductId)
+            ->filter()
+            ->contains($optionValue);
+    }
+
     public static function twoDpNumberFormat(?float $number): float
     {
-        return (float)number_format($number ?? 0, 2);
+        return (float) number_format($number ?? 0, 2);
     }
 }
