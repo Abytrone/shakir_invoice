@@ -473,7 +473,7 @@ class InvoiceResource extends Resource
 
                 Tables\Columns\TextColumn::make('amount_paid')
                     ->label('Paid')
-                    ->sortable()
+//                    ->sortable()
                     ->money('GHS')
                     ->toggleable(),
 
