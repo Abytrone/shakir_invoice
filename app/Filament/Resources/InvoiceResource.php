@@ -4,7 +4,9 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\InvoiceResource\Pages;
 use App\Mail\InvoiceSent;
+use App\Constants\PaymentStatus;
 use App\Models\Invoice;
+use App\Models\Payment;
 use App\Models\Product;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -473,7 +475,15 @@ class InvoiceResource extends Resource
 
                 Tables\Columns\TextColumn::make('amount_paid')
                     ->label('Paid')
-//                    ->sortable()
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->orderBy(
+                            Payment::query()
+                                ->selectRaw('coalesce(sum(amount), 0)')
+                                ->whereColumn('invoice_id', 'invoices.id')
+                                ->where('status', PaymentStatus::COMPLETED),
+                            $direction
+                        );
+                    })
                     ->money('GHS')
                     ->toggleable(),
 
