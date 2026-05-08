@@ -19,6 +19,7 @@ class Invoice extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected $appends = ['balance', 'total'];
     protected $guarded = [];
 
     protected $casts = [
@@ -106,7 +107,7 @@ class Invoice extends Model
     {
         return Attribute::make(
             get: function ($value, array $attributes) {
-                return (float)number_format(($this->total - $this->amountPaid), 2);
+                return ($this->total - $this->amountPaid);
             },
             set: fn($value) => $value,
         );
