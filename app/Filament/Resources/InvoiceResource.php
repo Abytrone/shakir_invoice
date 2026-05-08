@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\InvoiceResource\Pages;
 use App\Mail\InvoiceSent;
 use App\Constants\PaymentStatus;
+use App\Models\Client;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Product;
@@ -16,6 +17,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
@@ -47,6 +49,19 @@ class InvoiceResource extends Resource
                             ->searchable()
                             ->preload()
                             ->required()
+                            ->createOptionForm([
+                                Forms\Components\TextInput::make('name')
+                                    ->required()
+                                    ->maxLength(255),
+                            ])
+                            ->createOptionAction(
+                                fn(Forms\Components\Actions\Action $action) => $action->authorize('create', Client::class),
+                            )
+                            ->createOptionUsing(function (array $data): int {
+                                Gate::authorize('create', Client::class);
+
+                                return Client::create($data)->getKey();
+                            })
                             ->label('Client')
                             ->helperText('Select the client for this invoice'),
 
