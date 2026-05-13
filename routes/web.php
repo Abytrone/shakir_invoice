@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\ReceiptController;
 use App\Models\Invoice;
 use Illuminate\Support\Facades\Route;
 
@@ -43,6 +44,9 @@ Route::middleware('signed')->group(function () {
 
     Route::get('/payments/{payment}/receipt', [PaymentController::class, 'receipt'])
         ->name('payments.receipt');
+
+    Route::get('/receipts/{receipt}/download', [ReceiptController::class, 'download'])
+        ->name('receipts.download');
 });
 
 Route::get('/invoices/{invoice:invoice_uuid}/print', [InvoiceController::class, 'print'])->name('invoices.print');

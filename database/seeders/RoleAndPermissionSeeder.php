@@ -18,7 +18,7 @@ class RoleAndPermissionSeeder extends Seeder
         $user = Role::create(['name' => 'user']);
 
         // Resource permissions based on Filament Shield's structure
-        $resources = ['invoice', 'quote', 'client', 'product', 'role', 'user'];
+        $resources = ['invoice', 'quote', 'client', 'product', 'receipt', 'role', 'user'];
         $resourcePermissions = [
             'view_any',
             'view',
@@ -36,6 +36,7 @@ class RoleAndPermissionSeeder extends Seeder
         $customPermissions = [
             'invoice' => ['send_invoice', 'download_invoice'],
             'quote' => ['send_quote', 'download_quote', 'convert_quote'],
+            'receipt' => ['download_receipt'],
         ];
 
         $allPermissions = [];
@@ -76,6 +77,7 @@ class RoleAndPermissionSeeder extends Seeder
             'view_any_quote', 'view_quote', 'create_quote', 'update_quote', 'send_quote', 'download_quote',
             'view_any_client', 'view_client', 'create_client', 'update_client',
             'view_any_product', 'view_product',
+            'view_any_receipt', 'view_receipt', 'create_receipt', 'download_receipt',
         ]);
 
         $user->givePermissionTo([
@@ -83,6 +85,7 @@ class RoleAndPermissionSeeder extends Seeder
             'view_any_quote', 'view_quote', 'download_quote',
             'view_any_client', 'view_client',
             'view_any_product', 'view_product',
+            'view_any_receipt', 'view_receipt', 'download_receipt',
         ]);
     }
 }
