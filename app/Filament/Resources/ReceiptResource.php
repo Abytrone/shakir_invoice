@@ -102,9 +102,17 @@ class ReceiptResource extends Resource
                                                 ->orderBy('name')
                                                 ->pluck('name', 'id'))
                                             ->searchable()
-                                            ->required()
                                             ->live()
                                             ->afterStateUpdated(function ($state, Set $set, Get $get) {
+                                                if (!$state) {
+                                                    $set('product_name', null);
+                                                    $set('unit_price', 0);
+
+                                                    static::updateTotals($get, $set);
+
+                                                    return;
+                                                }
+
                                                 $product = Product::find($state);
 
                                                 if ($product) {
@@ -113,9 +121,15 @@ class ReceiptResource extends Resource
                                                 }
 
                                                 static::updateTotals($get, $set);
-                                            }),
+                                            })
+                                            ->helperText('Optional. Select a saved product or leave empty to type one.'),
 
-                                        Forms\Components\Hidden::make('product_name'),
+                                        Forms\Components\TextInput::make('product_name')
+                                            ->label('Product Name')
+                                            ->required()
+                                            ->maxLength(255)
+                                            ->disabled(fn(Get $get): bool => filled($get('product_id')))
+                                            ->dehydrated(),
 
                                         Forms\Components\TextInput::make('quantity')
                                             ->integer()
@@ -245,15 +259,17 @@ class ReceiptResource extends Resource
     public static function prepareReceiptData(array $data): array
     {
         $items = collect($data['items'] ?? [])
-            ->filter(fn($item): bool => is_array($item) && !empty($item['product_id']) && !empty($item['quantity']))
+            ->filter(fn($item): bool => is_array($item)
+                && (!empty($item['product_id']) || filled($item['product_name'] ?? null))
+                && !empty($item['quantity']))
             ->map(function (array $item): array {
-                $product = Product::find($item['product_id']);
+                $product = !empty($item['product_id']) ? Product::find($item['product_id']) : null;
                 $quantity = (int)($item['quantity'] ?? 1);
                 $unitPrice = (float)($item['unit_price'] ?? 0);
 
                 return [
-                    'product_id' => (int)$item['product_id'],
-                    'product_name' => $item['product_name'] ?? $product?->name,
+                    'product_id' => $product ? (int)$product->id : null,
+                    'product_name' => $product?->name ?? $item['product_name'],
                     'quantity' => $quantity,
                     'unit_price' => round($unitPrice, 2),
                     'total' => round($quantity * $unitPrice, 2),

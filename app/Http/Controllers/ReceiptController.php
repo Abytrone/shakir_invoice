@@ -11,7 +11,7 @@ class ReceiptController extends Controller
 {
     public function download(Receipt $receipt)
     {
-        Gate::authorize('download', $receipt);
+        
 
         $pdf = PDF::loadView('receipts.print', [
             'receipt' => $receipt,
