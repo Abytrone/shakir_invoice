@@ -45,10 +45,29 @@ jobs:
           REMOTE_USER: ${{ secrets.REMOTE_USER }}
           TARGET: ${{ secrets.REMOTE_TARGET }}
           EXCLUDE: "/node_modules/, /.git/, /.github/, /.env, /storage/logs/, /tests/, /phpunit.xml, /README.md"
+          SCRIPT_AFTER_REQUIRED: true
           SCRIPT_AFTER: |
-            cd ${{ secrets.REMOTE_TARGET }}
-            php artisan migrate --force
-            php artisan optimize:clear
-            php artisan cache:clear
-            php artisan config:clear
-            php artisan view:clear
+            set -e
+            cd "${{ secrets.REMOTE_TARGET }}"
+
+            PHP_BIN="${{ secrets.REMOTE_PHP_BINARY }}"
+            if [ -z "$PHP_BIN" ]; then
+              if command -v php >/dev/null 2>&1; then
+                PHP_BIN="$(command -v php)"
+              elif [ -x /opt/cpanel/ea-php82/root/usr/bin/php ]; then
+                PHP_BIN="/opt/cpanel/ea-php82/root/usr/bin/php"
+              elif [ -x /usr/local/bin/php ]; then
+                PHP_BIN="/usr/local/bin/php"
+              else
+                echo "PHP CLI binary was not found. Set REMOTE_PHP_BINARY to the full PHP 8.2 CLI path on cPanel."
+                exit 1
+              fi
+            fi
+
+            test -f artisan
+            "$PHP_BIN" -v
+            "$PHP_BIN" artisan migrate --force
+            "$PHP_BIN" artisan optimize:clear
+            "$PHP_BIN" artisan cache:clear
+            "$PHP_BIN" artisan config:clear
+            "$PHP_BIN" artisan view:clear
