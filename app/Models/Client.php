@@ -39,8 +39,4 @@ class Client extends Model
             'id'  // Local key on invoices table...
         );
     }
-    public function hasEmail(): bool
-    {
-        return !empty($this->email);
-    }
 }
