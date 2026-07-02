@@ -606,6 +606,7 @@ class InvoiceResource extends Resource
                                 ->default(true),
                         ])
                         ->action(function (\Illuminate\Database\Eloquent\Collection $records, array $data) {
+                            set_time_limit(300); // Increase time limit to 5 minutes for bulk PDF generation
                             $newInvoices = [];
                             foreach ($records as $record) {
                                 $newInvoice = $record->replicate();
