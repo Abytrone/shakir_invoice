@@ -2,7 +2,6 @@
 
 use App\Console\Commands\AutoBillClient;
 use App\Console\Commands\GenerateRecurringInvoices;
-use App\Console\Commands\LogToFile;
 use App\Console\Commands\RecurringInvoiceReminder;
 use App\Console\Commands\SchedulerIsStillRunning;
 use App\Console\Commands\UpdateInvoiceOverDueStatus;
@@ -40,8 +39,8 @@ Schedule::command(SchedulerIsStillRunning::class)
     ->appendOutputTo(storage_path('logs/scheduler-is-still-running.log'));
 
 
-Schedule::command(AutoBillClient::class)
-    ->dailyAt('00:00')
-    ->timeZone('Africa/Accra')
-    ->appendOutputTo(storage_path('logs/auto-bill-client.log'));
+//Schedule::command(AutoBillClient::class)
+//    ->dailyAt('00:00')
+//    ->timeZone('Africa/Accra')
+//    ->appendOutputTo(storage_path('logs/auto-bill-client.log'));
 

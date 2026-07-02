@@ -5,11 +5,14 @@ namespace Tests\Feature\Console\Commands;
 
 use App\Console\Commands\AutoBillClient;
 use App\Constants\InvoiceStatus;
+use App\Constants\PaymentStatus;
 use App\Models\Client;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
+use App\Models\Payment;
 use Http;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class AutoBillClientTest extends TestCase
@@ -19,8 +22,8 @@ class AutoBillClientTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Mail::fake();
     }
-
 
     public function test_it_can_save_auth_data(): void
     {
@@ -40,7 +43,7 @@ class AutoBillClientTest extends TestCase
         $this->assertNotNull($client->fresh()->auth_res);
     }
 
-    public function test_it_bills_clients_with_authorization(): void
+    public function test_it_creates_pending_payment_and_bills_client(): void
     {
         $client = Client::factory()->create([
             'auth_email' => 'auth@localhost.com',
@@ -70,28 +73,14 @@ class AutoBillClientTest extends TestCase
             'due_date' => now()->subDays(),
         ]);
 
-        InvoiceItem::factory()->count(2)->create([
-            'invoice_id' => $invoice->id,
-            'unit_price' => 10
+        \Http::fake([
+            'https://api.paystack.co/transaction/charge_authorization' => Http::response($this->fakeChargeResponse),
         ]);
 
-        \Http::fake([
-            'https://api.paystack.co/transaction/verify/*' => Http::response($this->getFakeVerifyResponse($invoice->invoice_number)),
-            'https://api.paystack.co/transaction/charge_authorization' => Http::response($this->fakeChargeResponse),
-        ])->withHeaders([
-            'Authorization' => 'Bearer 123',
-        ]);
         $this->artisan(AutoBillClient::class)
             ->expectsOutput('Starting auto bill client...')
             ->expectsOutput('1 has been billed...')
             ->assertExitCode(0);
-
-        $this->getJson(route('payments.process', ['reference' => 're4lyvq3s3']));
-
-        $this->assertDatabaseHas('clients', [
-            'id' => $client->id,
-            'auth_email' => 'auth@localhost.com'
-        ]);
 
         $this->assertDatabaseHas('invoices', [
             'id' => $invoice->id,
@@ -100,12 +89,246 @@ class AutoBillClientTest extends TestCase
         ]);
 
         $this->assertDatabaseHas('payments', [
-            'invoice_id' => $invoice->id
+            'invoice_id' => $invoice->id,
+            'status' => PaymentStatus::COMPLETED,
+            'reference_number' => '0m7frfnr47ezyxl',
         ]);
     }
 
+    public function test_it_retries_existing_pending_payment(): void
+    {
+        $client = Client::factory()->create([
+            'auth_email' => 'auth@localhost.com',
+            'auth_res' => json_encode($this->getFakeVerifyResponse()['data']['authorization'])
+        ]);
 
-    public $fakeChargeResponse = [
+        $invoice = Invoice::factory()->create([
+            'tax_rate' => 0,
+            'discount_rate' => 0,
+            'client_id' => $client->id,
+            'status' => InvoiceStatus::UNPAID,
+            'is_recurring' => true,
+            'due_date' => now()->subDays(),
+        ]);
+
+        InvoiceItem::factory()->count(2)->create([
+            'invoice_id' => $invoice->id,
+            'unit_price' => 10
+        ]);
+
+        $pendingPayment = Payment::create([
+            'invoice_id' => $invoice->id,
+            'amount' => $invoice->balance,
+            'payment_method' => 'paystack_auto',
+            'status' => PaymentStatus::PENDING,
+            'attempts' => 1,
+            'failure_reason' => 'Previous attempt failed',
+        ]);
+
+        \Http::fake([
+            'https://api.paystack.co/transaction/charge_authorization' => Http::response($this->fakeChargeResponse),
+        ]);
+
+        $this->artisan(AutoBillClient::class)
+            ->expectsOutput('Starting auto bill client...')
+            ->expectsOutput('1 has been billed...')
+            ->assertExitCode(0);
+
+        $this->assertDatabaseHas('payments', [
+            'id' => $pendingPayment->id,
+            'status' => PaymentStatus::COMPLETED,
+            'attempts' => 2,
+        ]);
+
+        $this->assertDatabaseCount('payments', 1);
+    }
+
+    public function test_it_handles_charge_error_and_leaves_pending(): void
+    {
+        $client = Client::factory()->create([
+            'auth_email' => 'auth@localhost.com',
+            'auth_res' => json_encode($this->getFakeVerifyResponse()['data']['authorization'])
+        ]);
+
+        $invoice = Invoice::factory()->create([
+            'tax_rate' => 0,
+            'discount_rate' => 0,
+            'client_id' => $client->id,
+            'status' => InvoiceStatus::UNPAID,
+            'is_recurring' => true,
+            'due_date' => now()->subDays(),
+        ]);
+
+        InvoiceItem::factory()->count(2)->create([
+            'invoice_id' => $invoice->id,
+            'unit_price' => 10
+        ]);
+
+        \Http::fake([
+            'https://api.paystack.co/transaction/charge_authorization' => Http::response($this->fakeChargeErrorResponse),
+        ]);
+
+        $this->artisan(AutoBillClient::class)
+            ->expectsOutput('Starting auto bill client...')
+            ->expectsOutputToContain('Transaction error:')
+            ->assertExitCode(0);
+
+        $this->assertDatabaseHas('invoices', [
+            'id' => $invoice->id,
+            'status' => InvoiceStatus::UNPAID,
+        ]);
+
+        $this->assertDatabaseHas('payments', [
+            'invoice_id' => $invoice->id,
+            'status' => PaymentStatus::PENDING,
+            'attempts' => 1,
+        ]);
+    }
+
+    public function test_it_marks_failed_after_max_attempts(): void
+    {
+        $client = Client::factory()->create([
+            'auth_email' => 'auth@localhost.com',
+            'auth_res' => json_encode($this->getFakeVerifyResponse()['data']['authorization'])
+        ]);
+
+        $invoice = Invoice::factory()->create([
+            'tax_rate' => 0,
+            'discount_rate' => 0,
+            'client_id' => $client->id,
+            'status' => InvoiceStatus::UNPAID,
+            'is_recurring' => true,
+            'due_date' => now()->subDays(),
+        ]);
+
+        InvoiceItem::factory()->count(2)->create([
+            'invoice_id' => $invoice->id,
+            'unit_price' => 10
+        ]);
+
+        Payment::create([
+            'invoice_id' => $invoice->id,
+            'amount' => $invoice->balance,
+            'payment_method' => 'paystack_auto',
+            'status' => PaymentStatus::PENDING,
+            'attempts' => PaymentStatus::MAX_ATTEMPTS - 1,
+        ]);
+
+        \Http::fake([
+            'https://api.paystack.co/transaction/charge_authorization' => Http::response($this->fakeChargeErrorResponse),
+        ]);
+
+        $this->artisan(AutoBillClient::class)
+            ->expectsOutput('Starting auto bill client...')
+            ->assertExitCode(0);
+
+        $this->assertDatabaseHas('payments', [
+            'invoice_id' => $invoice->id,
+            'status' => PaymentStatus::FAILED,
+            'attempts' => PaymentStatus::MAX_ATTEMPTS,
+        ]);
+    }
+
+    public function test_it_handles_declined_payment(): void
+    {
+        $client = Client::factory()->create([
+            'auth_email' => 'auth@localhost.com',
+            'auth_res' => json_encode($this->getFakeVerifyResponse()['data']['authorization'])
+        ]);
+
+        $invoice = Invoice::factory()->create([
+            'tax_rate' => 0,
+            'discount_rate' => 0,
+            'client_id' => $client->id,
+            'status' => InvoiceStatus::UNPAID,
+            'is_recurring' => true,
+            'due_date' => now()->subDays(),
+        ]);
+
+        InvoiceItem::factory()->count(2)->create([
+            'invoice_id' => $invoice->id,
+            'unit_price' => 10
+        ]);
+
+        \Http::fake([
+            'https://api.paystack.co/transaction/charge_authorization' => Http::response($this->fakeChargeResponse(withFailedStatus: true)),
+        ]);
+
+        $this->artisan(AutoBillClient::class)
+            ->expectsOutput('Starting auto bill client...')
+            ->expectsOutputToContain('Payment error:')
+            ->assertExitCode(0);
+
+        $this->assertDatabaseHas('payments', [
+            'invoice_id' => $invoice->id,
+            'status' => PaymentStatus::PENDING,
+            'attempts' => 1,
+        ]);
+
+        $this->assertDatabaseHas('invoices', [
+            'id' => $invoice->id,
+            'status' => InvoiceStatus::UNPAID,
+        ]);
+    }
+
+    public function test_it_skips_already_paid_invoice(): void
+    {
+        $client = Client::factory()->create([
+            'auth_email' => 'auth@localhost.com',
+            'auth_res' => json_encode($this->getFakeVerifyResponse()['data']['authorization'])
+        ]);
+
+        $invoice = Invoice::factory()->create([
+            'tax_rate' => 0,
+            'discount_rate' => 0,
+            'client_id' => $client->id,
+            'status' => InvoiceStatus::UNPAID,
+            'is_recurring' => true,
+            'due_date' => now()->subDays(),
+        ]);
+
+        InvoiceItem::factory()->count(2)->create([
+            'invoice_id' => $invoice->id,
+            'unit_price' => 10
+        ]);
+
+        Payment::create([
+            'invoice_id' => $invoice->id,
+            'amount' => $invoice->total,
+            'payment_method' => 'card',
+            'status' => PaymentStatus::COMPLETED,
+            'reference_number' => 'manual_ref',
+        ]);
+
+        $pendingPayment = Payment::create([
+            'invoice_id' => $invoice->id,
+            'amount' => $invoice->total,
+            'payment_method' => 'paystack_auto',
+            'status' => PaymentStatus::PENDING,
+        ]);
+
+        \Http::fake();
+
+        $this->artisan(AutoBillClient::class)
+            ->expectsOutput('Starting auto bill client...')
+            ->assertExitCode(0);
+
+        $this->assertDatabaseHas('payments', [
+            'id' => $pendingPayment->id,
+            'status' => PaymentStatus::FAILED,
+            'failure_reason' => 'Invoice already paid',
+        ]);
+
+        Http::assertNothingSent();
+    }
+
+
+    public array $fakeChargeErrorResponse = [
+        "status" => false,
+        "message" => "Invalid key"
+    ];
+
+    public array $fakeChargeResponse = [
         "status" => true,
         "message" => "Charge attempted",
         "data" => [
@@ -161,10 +384,68 @@ class AutoBillClientTest extends TestCase
         ]
     ];
 
-    public function getFakeVerifyResponse(?string $invoiceNumber = null, bool $withAuthEmail = false): array
+    public function fakeChargeResponse(bool $withFailedStatus = false): array
+    {
+        return [
+            "status" => true,
+            "message" => "Charge attempted",
+            "data" => [
+                "amount" => 35247,
+                "currency" => "NGN",
+                "transaction_date" => "2024-08-22T10:53:49.000Z",
+                "status" => $withFailedStatus ? 'failed' : "success",
+                "reference" => "0m7frfnr47ezyxl",
+                "domain" => "test",
+                "metadata" => "",
+                "gateway_response" => "Approved",
+                "message" => null,
+                "channel" => "card",
+                "ip_address" => null,
+                "log" => null,
+                "fees" => 10247,
+                "authorization" => [
+                    "authorization_code" => "AUTH_uh8bcl3zbn",
+                    "bin" => "408408",
+                    "last4" => "4081",
+                    "exp_month" => "12",
+                    "exp_year" => "2030",
+                    "channel" => "card",
+                    "card_type" => "visa ",
+                    "bank" => "TEST BANK",
+                    "country_code" => "NG",
+                    "brand" => "visa",
+                    "reusable" => true,
+                    "signature" => "SIG_yEXu7dLBeqG0kU7g95Ke",
+                    "account_name" => null
+                ],
+                "customer" => [
+                    "id" => 181873746,
+                    "first_name" => null,
+                    "last_name" => null,
+                    "email" => "demo@test.com",
+                    "customer_code" => "CUS_1rkzaqsv4rrhqo6",
+                    "phone" => null,
+                    "metadata" => [
+                        "custom_fields" => [
+                            [
+                                "display_name" => "Customer email",
+                                "variable_name" => "customer_email",
+                                "value" => "new@email.com"
+                            ]
+                        ]
+                    ],
+                    "risk_action" => "default",
+                    "international_format_phone" => null
+                ],
+                "plan" => null,
+                "id" => 4099490251
+            ]
+        ];
+    }
+
+    public function getFakeVerifyResponse(?string $invoiceNumber = null, bool $withAuthEmail = false, bool $failedStatus = false): array
     {
         $customFields = [
-            [ ],
             [
                 "value" => $invoiceNumber,
                 "display_name" => "Invoice Number",
@@ -185,7 +466,7 @@ class AutoBillClientTest extends TestCase
             "data" => [
                 "id" => 4099260516,
                 "domain" => "test",
-                "status" => "success",
+                "status" => $failedStatus ? 'failed' : "success",
                 "reference" => "re4lyvq3s3",
                 "receipt_number" => null,
                 "amount" => 40333,
@@ -264,6 +545,4 @@ class AutoBillClientTest extends TestCase
             ]
         ];
     }
-
-
 }

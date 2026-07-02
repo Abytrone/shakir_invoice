@@ -4,7 +4,10 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\InvoiceResource\Pages;
 use App\Mail\InvoiceSent;
+use App\Constants\PaymentStatus;
+use App\Models\Client;
 use App\Models\Invoice;
+use App\Models\Payment;
 use App\Models\Product;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -14,6 +17,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
@@ -45,6 +49,19 @@ class InvoiceResource extends Resource
                             ->searchable()
                             ->preload()
                             ->required()
+                            ->createOptionForm([
+                                Forms\Components\TextInput::make('name')
+                                    ->required()
+                                    ->maxLength(255),
+                            ])
+                            ->createOptionAction(
+                                fn(Forms\Components\Actions\Action $action) => $action->authorize('create', Client::class),
+                            )
+                            ->createOptionUsing(function (array $data): int {
+                                Gate::authorize('create', Client::class);
+
+                                return Client::create($data)->getKey();
+                            })
                             ->label('Client')
                             ->helperText('Select the client for this invoice'),
 
@@ -53,13 +70,13 @@ class InvoiceResource extends Resource
                             ->default(now())
                             ->label('Issue Date')
                             ->helperText('The date when the invoice is issued')
-                            ->maxDate(now())
-                            ->live()
-                            ->afterStateUpdated(function (Get $get, Set $set, ?string $state) {
-                                if ($state) {
-                                    $set('due_date', \Carbon\Carbon::parse($state)->addDay()->format('Y-m-d'));
-                                }
-                            }),
+                            ->maxDate(now()),
+//                            ->live()
+//                            ->afterStateUpdated(function (Get $get, Set $set, ?string $state) {
+//                                if ($state) {
+//                                    $set('due_date', \Carbon\Carbon::parse($state)->addDay()->format('Y-m-d'));
+//                                }
+//                            }),
 
                         Forms\Components\DatePicker::make('due_date')
                             ->required()
@@ -120,13 +137,15 @@ class InvoiceResource extends Resource
                                                     ->filter()
                                                     ->contains($value);
                                             })
-                                            ->afterStateUpdated(function ($state, Set $set) {
+                                            ->afterStateUpdated(function ($state, Set $set, Get $get) {
                                                 if ($state) {
                                                     $product = Product::find($state);
                                                     if ($product) {
                                                         $set('unit_price', $product->unit_price);
                                                     }
                                                 }
+
+                                                static::updateInnerTotals($get, $set);
                                             })
                                             ->columnSpan(1),
 
@@ -147,25 +166,24 @@ class InvoiceResource extends Resource
                                             ->label('Unit Price')
                                             ->helperText('Price per unit')
                                             ->live()
-                                            ->columnSpan(1),
+                                            ->columnSpan(1)
                                     ]),
                             ])
                             ->defaultItems(1)
                             ->reorderable(false)
                             ->columnSpanFull()
                             ->live(),
-                    ])->afterStateUpdated(function (Get $get, Set $set) {
-                        static::updateTotals($get, $set);
+                    ])
+                    ->live()
+                    ->afterStateUpdated(function (Get $get, Set $set) {
+                        static::updateOuterTotals($get, $set);
                     })->afterStateHydrated(function (Get $get, Set $set) {
-                        static::updateTotals($get, $set);
+                        static::updateOuterTotals($get, $set);
                     }),
 
                 Forms\Components\Section::make('Invoice Summary')
                     ->icon('heroicon-o-currency-dollar')
                     ->schema([
-                        // First row: Tax and Discount
-                        // First row: Tax and Discount
-                        // First row: Tax and Discount
                         Forms\Components\Grid::make(2)
                             ->schema([
                                 // Tax Section
@@ -179,40 +197,20 @@ class InvoiceResource extends Resource
                                                     ->numeric()
                                                     ->default(0)
                                                     ->suffix('%')
-                                                    ->live(onBlur: true)
-                                                    ->afterStateUpdated(function (Get $get, Set $set, ?string $state) {
-                                                        $selectedProducts = collect($get('items'))
-                                                            ->filter(fn($item) => !empty($item['product_id']) && !empty($item['quantity']));
-                                                        $subtotal = $selectedProducts->sum(fn($item) => (float) $item['unit_price'] * (int) $item['quantity']);
-
-                                                        // Sync Amount
-                                                        $rate = (float) $state;
-                                                        $amount = $subtotal * ($rate / 100);
-
-                                                        $set('tax_amount', number_format($amount, 2, '.', ''));
+                                                    ->live()
+                                                    ->afterStateUpdated(function (Get $get, Set $set) {
                                                         $set('tax_type', 'percent');
-
-                                                        self::updateTotals($get, $set, isTaxAmountManual: false);
+                                                        self::updateOuterTotals($get, $set);
                                                     }),
                                                 Forms\Components\TextInput::make('tax_amount')
                                                     ->label('Tax Amount')
                                                     ->numeric()
                                                     ->default(0)
                                                     ->prefix('GHS')
-                                                    ->live(onBlur: true)
-                                                    ->afterStateUpdated(function (Get $get, Set $set, ?string $state) {
-                                                        $selectedProducts = collect($get('items'))
-                                                            ->filter(fn($item) => !empty($item['product_id']) && !empty($item['quantity']));
-                                                        $subtotal = $selectedProducts->sum(fn($item) => (float) $item['unit_price'] * (int) $item['quantity']);
-
-                                                        // Sync Rate
-                                                        $amount = (float) $state;
-                                                        $rate = $subtotal > 0 ? ($amount / $subtotal) * 100 : 0;
-
-                                                        $set('tax_rate', number_format($rate, 2, '.', ''));
+                                                    ->live()
+                                                    ->afterStateUpdated(function (Get $get, Set $set) {
                                                         $set('tax_type', 'fixed');
-
-                                                        self::updateTotals($get, $set, isTaxAmountManual: true);
+                                                        self::updateOuterTotals($get, $set);
                                                     }),
                                             ]),
                                     ])->columnSpan(1),
@@ -228,40 +226,20 @@ class InvoiceResource extends Resource
                                                     ->numeric()
                                                     ->default(0)
                                                     ->suffix('%')
-                                                    ->live(onBlur: true)
-                                                    ->afterStateUpdated(function (Get $get, Set $set, ?string $state) {
-                                                        $selectedProducts = collect($get('items'))
-                                                            ->filter(fn($item) => !empty($item['product_id']) && !empty($item['quantity']));
-                                                        $subtotal = $selectedProducts->sum(fn($item) => (float) $item['unit_price'] * (int) $item['quantity']);
-
-                                                        // Sync Amount
-                                                        $rate = (float) $state;
-                                                        $amount = $subtotal * ($rate / 100);
-
-                                                        $set('discount_amount', number_format($amount, 2, '.', ''));
+                                                    ->live()
+                                                    ->afterStateUpdated(function (Get $get, Set $set) {
                                                         $set('discount_type', 'percent');
-
-                                                        self::updateTotals($get, $set, isDiscountAmountManual: false);
+                                                        self::updateOuterTotals($get, $set);
                                                     }),
                                                 Forms\Components\TextInput::make('discount_amount')
                                                     ->label('Discount Amount')
                                                     ->numeric()
                                                     ->default(0)
                                                     ->prefix('GHS')
-                                                    ->live(onBlur: true)
-                                                    ->afterStateUpdated(function (Get $get, Set $set, ?string $state) {
-                                                        $selectedProducts = collect($get('items'))
-                                                            ->filter(fn($item) => !empty($item['product_id']) && !empty($item['quantity']));
-                                                        $subtotal = $selectedProducts->sum(fn($item) => (float) $item['unit_price'] * (int) $item['quantity']);
-
-                                                        // Sync Rate
-                                                        $amount = (float) $state;
-                                                        $rate = $subtotal > 0 ? ($amount / $subtotal) * 100 : 0;
-
-                                                        $set('discount_rate', number_format($rate, 2, '.', ''));
+                                                    ->live()
+                                                    ->afterStateUpdated(function (Get $get, Set $set) {
                                                         $set('discount_type', 'fixed');
-
-                                                        self::updateTotals($get, $set, isDiscountAmountManual: true);
+                                                        self::updateOuterTotals($get, $set);
                                                     }),
                                             ]),
                                     ])->columnSpan(1),
@@ -332,26 +310,114 @@ class InvoiceResource extends Resource
             ]);
     }
 
-    protected static function updateSingleProductTotals(Product $product, $quantity): array
-    {
-        $unitPrice = (float) ($product->unit_price ?? 0);
-        $subtotal = $quantity * $unitPrice;
 
-        return [
-            'subtotal' => $subtotal,
-        ];
+    protected static function updateInnerTotals(Get $get, Set $set): void
+    {
+        static::updateTotalsV2(
+            $set,
+            $get('../../items'),
+            $get('../../tax_type'),
+            $get('../../discount_type'),
+            $get('../../tax_rate'),
+            $get('../../tax_amount'),
+            $get('../../discount_rate'),
+            $get('../../discount_amount'),
+            function ($set, $subtotal, $grandTotal, $discountAmount, $discountRate, $taxAmount, $taxRate) {
+                $set('../../discount_amount', self::twoDpNumberFormat($discountAmount));
+                $set('../../discount_rate', self::twoDpNumberFormat($discountRate));
+                $set('../../tax_amount', self::twoDpNumberFormat($taxAmount));
+                $set('../../tax_rate', self::twoDpNumberFormat($taxRate));
+                $set('../../subtotal', self::twoDpNumberFormat($subtotal));
+                $set('../../total', self::twoDpNumberFormat($grandTotal));
+            }
+        );
     }
 
-    protected static function updateTotals(Get $get, Set $set, bool $isTaxAmountManual = false, bool $isDiscountAmountManual = false): void
+    protected static function updateOuterTotals(Get $get, Set $set): void
+    {
+        static::updateTotalsV2(
+            $set,
+            $get('items'),
+            $get('tax_type'),
+            $get('discount_type'),
+            $get('tax_rate'),
+            $get('tax_amount'),
+            $get('discount_rate'),
+            $get('discount_amount')
+        );
+    }
+
+
+    protected static function updateTotalsV2(
+        Set       $set,
+        array     $items,
+        ?string   $taxType,
+        ?string   $discountType,
+        ?string   $taxRate,
+        ?string   $taxAmount,
+        ?string   $discountRate,
+        ?string   $discountAmount,
+        ?\Closure $callableSet = null
+    ): void
+    {
+        $taxRate = (float)$taxRate;
+        $taxAmount = (float)$taxAmount;
+        $discountRate = (float)$discountRate;
+        $discountAmount = (float)$discountAmount;
+        $subtotal = 0;
+
+        $selectedProducts = collect($items)
+            ->filter(fn($item) => !empty($item['product_id'])
+                && !empty($item['quantity']));
+
+        foreach ($selectedProducts as $item) {
+            $subtotal += (float)$item['unit_price'] * (int)$item['quantity'];
+        }
+
+        // Tax Calculation
+        if ($taxType === 'fixed') {
+            $taxRate = $subtotal > 0 ? ($taxAmount / $subtotal) * 100 : 0;
+        } else {
+            $taxAmount = $subtotal * ($taxRate / 100);
+        }
+
+        // Discount Calculation
+        if ($discountType === 'fixed') {
+            $discountRate = $subtotal > 0 ? ($discountAmount / $subtotal) * 100 : 0;
+        } else {
+            $discountAmount = $subtotal * ($discountRate / 100);
+        }
+
+        $grandTotal = $subtotal + $taxAmount - $discountAmount;
+        if ($callableSet != null) {
+            $callableSet($set,
+                $subtotal,
+                $grandTotal,
+                $discountAmount,
+                $discountRate,
+                $taxAmount,
+                $taxRate);
+        } else {
+            $set('discount_amount', self::twoDpNumberFormat($discountAmount));
+            $set('discount_rate', self::twoDpNumberFormat($discountRate));
+            $set('tax_amount', self::twoDpNumberFormat($taxAmount));
+            $set('tax_rate', self::twoDpNumberFormat($taxRate));
+            $set('subtotal', round($subtotal, 2));
+            $set('total', round($grandTotal, 2));
+        }
+
+    }
+
+    protected static function updateTotals(Get $get, Set $set): void
     {
         $selectedProducts = collect($get('items'))
             ->filter(fn($item) => !empty($item['product_id'])
                 && !empty($item['quantity']));
-
         $subtotal = 0;
 
+        Log::debug('selected products', [$selectedProducts]);
         foreach ($selectedProducts as $item) {
-            $subtotal += (float) $item['unit_price'] * (int) $item['quantity'];
+            $subtotal += (float)$item['unit_price'] * (int)$item['quantity'];
         }
 
         $taxType = $get('tax_type') ?? 'percent';
@@ -359,24 +425,24 @@ class InvoiceResource extends Resource
 
         // Tax Calculation
         if ($taxType === 'fixed') {
-            $taxAmount = (float) $get('tax_amount');
+            $taxAmount = (float)$get('tax_amount');
             // In Fixed mode, we trust the amount explicitly.
             // We set the rate just for UI consistency if they switch back, but the DB truth is the amount.
             $rate = $subtotal > 0 ? ($taxAmount / $subtotal) * 100 : 0;
             $set('tax_rate', number_format($rate, 2, '.', ''));
         } else {
-            $tax_rate = (float) $get('tax_rate');
+            $tax_rate = (float)$get('tax_rate');
             $taxAmount = $subtotal * ($tax_rate / 100);
             $set('tax_amount', number_format($taxAmount, 2, '.', ''));
         }
 
         // Discount Calculation
         if ($discountType === 'fixed') {
-            $discountAmount = (float) $get('discount_amount');
+            $discountAmount = (float)$get('discount_amount');
             $rate = $subtotal > 0 ? ($discountAmount / $subtotal) * 100 : 0;
             $set('discount_rate', number_format($rate, 2, '.', ''));
         } else {
-            $discount_rate = (float) $get('discount_rate');
+            $discount_rate = (float)$get('discount_rate');
             $discountAmount = $subtotal * ($discount_rate / 100);
             $set('discount_amount', number_format($discountAmount, 2, '.', ''));
         }
@@ -385,21 +451,6 @@ class InvoiceResource extends Resource
 
         $set('subtotal', round($subtotal, 2));
         $set('total', round($grandTotal, 2));
-    }
-
-    public static function setProductPricingDetails(): \Closure
-    {
-        return function ($state, Set $set, Get $get) {
-
-            if ($state) {
-                $product = Product::query()
-                    ->find($state['product_id']);
-
-                if ($product) {
-                    $set('unit_price', $product->unit_price);
-                }
-            }
-        };
     }
 
     public static function table(Table $table): Table
@@ -439,7 +490,15 @@ class InvoiceResource extends Resource
 
                 Tables\Columns\TextColumn::make('amount_paid')
                     ->label('Paid')
-                    ->sortable()
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->orderBy(
+                            Payment::query()
+                                ->selectRaw('coalesce(sum(amount), 0)')
+                                ->whereColumn('invoice_id', 'invoices.id')
+                                ->where('status', PaymentStatus::COMPLETED),
+                            $direction
+                        );
+                    })
                     ->money('GHS')
                     ->toggleable(),
 
@@ -510,6 +569,13 @@ class InvoiceResource extends Resource
                     Tables\Actions\Action::make('download')
                         ->icon('heroicon-o-arrow-down-tray')
                         ->url(fn(Invoice $record): string => URL::signedRoute('invoices.download', $record))
+                        ->openUrlInNewTab(),
+
+                    Tables\Actions\Action::make('download_quotation')
+                        ->icon('heroicon-o-arrow-down-tray')
+                        ->url(fn(Invoice $record): string => URL::signedRoute('invoices.download', [
+                            'invoice' => $record,
+                            'asQuotation' => true]))
                         ->openUrlInNewTab(),
 
                     Tables\Actions\Action::make('send')
@@ -686,5 +752,14 @@ class InvoiceResource extends Resource
             'create' => Pages\CreateInvoice::route('/create'),
             'edit' => Pages\EditInvoice::route('/{record}/edit'),
         ];
+    }
+
+    /**
+     * @param ?float $number
+     * @return float
+     */
+    public static function twoDpNumberFormat(?float $number): float
+    {
+        return (float)number_format($number ?? 0, 2);
     }
 }

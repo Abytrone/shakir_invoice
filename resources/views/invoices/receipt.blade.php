@@ -256,7 +256,7 @@
                 <p class="text-sm mb-4"><span class="meta-title">DATE: </span>{{ $payment->created_at->format('d-m-Y') }}</p>
                 <p class="text-sm mb-4">
                     <span class="meta-title">PAYMENT METHOD: </span>
-                    {{  (['bank_transfer'=>'Bank Transfer', 'mobile_money'=>'Mobile Money', 'cash'=>'Cash', 'other'=>'Other'][$payment->payment_method]) ?? 'N/A' }}
+                    {{  (['bank_transfer'=>'Bank Transfer', 'mobile_money'=>'Mobile Money', 'cash'=>'Cash', 'cheque'=>'Cheque', 'other'=>'Other'][$payment->payment_method]) ?? 'N/A' }}
                 </p>
 
                 @if($invoice->is_recurring)
@@ -321,7 +321,7 @@
                 <td class="label">Total:</td>
                 <td class="value"><strong>GHC {{ number_format($invoice->total, 2) }}</strong></td>
             </tr>
-            @if($invoice->status == 'paid')
+{{--            @if($invoice->status == 'paid')--}}
                 <tr>
                     <td class="label text-green">Amount Paid:</td>
                     <td class="value text-green">GHC {{ number_format($invoice->amount_paid, 2) }}</td>
@@ -330,7 +330,7 @@
                     <td class="label text-red">Balance Due:</td>
                     <td class="value text-red">GHC {{ number_format($invoice->balance, 2) }}</td>
                 </tr>
-            @endif
+{{--            @endif--}}
         </table>
         <div class="sign">
             <img src="{{ public_path('images/sign.png') }}" alt="Footer" style="width: 15%; height: auto;">

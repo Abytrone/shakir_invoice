@@ -1,0 +1,73 @@
+name: Deploy to cPanel
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype, iconv, intl, dom, filter, gd, json, libxml, openssl, pcre, phar, pdo, pdo_mysql, session, tokenizer, zip
+          tools: composer:v2
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install NPM dependencies
+        run: npm install
+
+      - name: Build frontend assets
+        run: npm run build
+
+      - name: Sync files to cPanel via SSH
+        uses: easingthemes/ssh-deploy@v5.0.3
+        with:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          ARGS: "-rltgoDzvO"
+          SOURCE: ""
+          REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
+          REMOTE_USER: ${{ secrets.REMOTE_USER }}
+          TARGET: ${{ secrets.REMOTE_TARGET }}
+          EXCLUDE: "/node_modules/, /.git/, /.github/, /.env, /storage/logs/, /tests/, /phpunit.xml, /README.md"
+          SCRIPT_AFTER_REQUIRED: true
+          SCRIPT_AFTER: |
+            set -e
+            cd "${{ secrets.REMOTE_TARGET }}"
+
+            PHP_BIN="${{ secrets.REMOTE_PHP_BINARY }}"
+            if [ -z "$PHP_BIN" ]; then
+              if command -v php >/dev/null 2>&1; then
+                PHP_BIN="$(command -v php)"
+              elif [ -x /opt/cpanel/ea-php82/root/usr/bin/php ]; then
+                PHP_BIN="/opt/cpanel/ea-php82/root/usr/bin/php"
+              elif [ -x /usr/local/bin/php ]; then
+                PHP_BIN="/usr/local/bin/php"
+              else
+                echo "PHP CLI binary was not found. Set REMOTE_PHP_BINARY to the full PHP 8.2 CLI path on cPanel."
+                exit 1
+              fi
+            fi
+
+            test -f artisan
+            "$PHP_BIN" -v
+            "$PHP_BIN" artisan migrate --force
+            "$PHP_BIN" artisan optimize:clear
+            "$PHP_BIN" artisan cache:clear
+            "$PHP_BIN" artisan config:clear
+            "$PHP_BIN" artisan view:clear

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Constants\InvoiceStatus;
+use App\Constants\PaymentStatus;
 use App\Observers\InvoiceObserver;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
@@ -18,6 +19,7 @@ class Invoice extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected $appends = ['balance', 'total'];
     protected $guarded = [];
 
     protected $casts = [
@@ -34,38 +36,62 @@ class Invoice extends Model
 
     public function markAsPaid(): void
     {
-        if ($this->status != 'paid') {
-            $this->update(['status' => 'paid']);
-        }
+        $this->update(['status' => InvoiceStatus::PAID]);
     }
+
+    public function isPaid(): bool
+    {
+        return $this->payments->sum('amount') >= $this->total;
+    }
+
+    public function isPartial(): bool
+    {
+        $amountPaid = $this->payments->sum('amount');
+
+        return $amountPaid > 0 && $amountPaid < $this->total;
+    }
+
 
     public function markAsOverdue(): void
     {
-        if ($this->isOverdue() && $this->status != InvoiceStatus::OVERDUE) {
-            $this->update(['status' => 'overdue']);
-        }
+        $this->update(['status' => InvoiceStatus::OVERDUE]);
+    }
+
+    public function isOverdue(): bool
+    {
+        return $this->due_date->isBefore(Carbon::today());
     }
 
     public function markAsSent(): void
     {
-        if ($this->status != 'sent') {
-            $this->update(['status' => 'sent']);
-        }
+        $this->update(['status' => InvoiceStatus::SENT]);
+    }
+
+    public function isSent(): bool
+    {
+        return $this->status === InvoiceStatus::SENT;
     }
 
     public function markAsDraft(): void
     {
-        if ($this->status != 'draft') {
-            $this->update(['status' => 'draft']);
-        }
+        $this->update(['status' => InvoiceStatus::DRAFT]);
+    }
+
+    public function isDraft(): bool
+    {
+        return $this->status === InvoiceStatus::DRAFT;
     }
 
     public function markAsCancelled(): void
     {
-        if ($this->status != 'cancelled') {
-            $this->update(['status' => 'cancelled']);
-        }
+        $this->update(['status' => InvoiceStatus::CANCELLED]);
     }
+
+    public function isCancelled(): bool
+    {
+        return $this->status === InvoiceStatus::CANCELLED;
+    }
+
 
     protected function subtotal(): Attribute
     {
@@ -77,12 +103,22 @@ class Invoice extends Model
         );
     }
 
+    protected function balance(): Attribute
+    {
+        return Attribute::make(
+            get: function ($value, array $attributes) {
+                return ($this->total - $this->amountPaid);
+            },
+            set: fn($value) => $value,
+        );
+    }
+
     protected function discount(): Attribute
     {
         return Attribute::make(
             get: function ($value, array $attributes) {
                 if (($attributes['discount_type'] ?? 'percent') === 'fixed') {
-                    return (float) ($attributes['discount_amount'] ?? 0);
+                    return (float)($attributes['discount_amount'] ?? 0);
                 }
                 return $this->items->sum('total') * ($attributes['discount_rate'] / 100);
             },
@@ -95,7 +131,7 @@ class Invoice extends Model
         return Attribute::make(
             get: function ($value, array $attributes) {
                 if (($attributes['tax_type'] ?? 'percent') === 'fixed') {
-                    return (float) ($attributes['tax_amount'] ?? 0);
+                    return (float)($attributes['tax_amount'] ?? 0);
                 }
                 return $this->items->sum('total') * ($attributes['tax_rate'] / 100);
             },
@@ -110,13 +146,13 @@ class Invoice extends Model
                 $itemsSum = $this->items->sum('total');
 
                 if (($attributes['tax_type'] ?? 'percent') === 'fixed') {
-                    $taxAmount = (float) ($attributes['tax_amount'] ?? 0);
+                    $taxAmount = (float)($attributes['tax_amount'] ?? 0);
                 } else {
                     $taxAmount = ($attributes['tax_rate'] ?? 0) / 100 * $itemsSum;
                 }
 
                 if (($attributes['discount_type'] ?? 'percent') === 'fixed') {
-                    $discountAmount = (float) ($attributes['discount_amount'] ?? 0);
+                    $discountAmount = (float)($attributes['discount_amount'] ?? 0);
                 } else {
                     $discountAmount = ($attributes['discount_rate'] ?? 0) / 100 * $itemsSum;
                 }
@@ -141,35 +177,15 @@ class Invoice extends Model
 
     public function payments(): HasMany
     {
+        return $this->hasMany(Payment::class)
+            ->where('status', PaymentStatus::COMPLETED);
+    }
+
+    public function allPayments(): HasMany
+    {
         return $this->hasMany(Payment::class);
     }
 
-    public function isSent(): bool
-    {
-        return $this->status === 'sent';
-    }
-
-    public function isOverdue(): bool
-    {
-        return $this->due_date->isBefore(Carbon::today());
-    }
-
-    public function isDraft(): bool
-    {
-        return $this->status === 'draft';
-    }
-
-    public function isPaid(): bool
-    {
-        return $this->payments->sum('amount') >= $this->total;
-    }
-
-    public function isPartial(): bool
-    {
-        $amountPaid = $this->payments->sum('amount');
-
-        return $amountPaid > 0 && $amountPaid < $this->total;
-    }
 
     protected function amountPaid(): Attribute
     {

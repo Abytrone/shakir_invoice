@@ -16,12 +16,12 @@ class Client extends Model
 
     public function hasEmail(): bool
     {
-        return $this->email !== null && $this->email !== '';
+        return !empty($this->email);
     }
 
     public function shouldBeBillAutomatically(): bool
     {
-        return $this->auth_email !== null && $this->authemail !== '';
+        return $this->auth_email !== null && $this->auth_email !== '';
     }
     public function quotes(): HasMany
     {
@@ -39,4 +39,5 @@ class Client extends Model
             'id'  // Local key on invoices table...
         );
     }
+
 }

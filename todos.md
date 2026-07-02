@@ -1,6 +1,7 @@
 - [ ] Invoice
-  - [ ] when an invoice is recurring, recalculate the due date to fit the frequency 
-  - [ ] setup recurring logic
-  - [ ] send email after creating invoice
-    - [ ] qr code
-    - [ ] payment link
+    - [ ] when an invoice is recurring, recalculate the due date to fit the frequency 
+    - [ ] Add payment reminder
+    - [ ] setup recurring logic
+    - [ ] send email after creating invoice
+      - [ ] qr code
+      - [ ] payment link

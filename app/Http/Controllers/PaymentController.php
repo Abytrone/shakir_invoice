@@ -117,13 +117,6 @@ class PaymentController extends Controller
             ]);
         }
 
-        if (!$response['status']) {
-            return view('payments.success', [
-                'invoice' => null,
-                'message' => 'There was an error processing your payment. Please try again.',
-            ]);
-        }
-
         info('meta data', [$response['data']['metadata']['custom_fields']]);
         $meta = collect($response['data']['metadata']['custom_fields']);
 

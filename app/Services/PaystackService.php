@@ -2,9 +2,14 @@
 
 namespace App\Services;
 
+use App\Constants\InvoiceStatus;
+use App\Mail\InvoicePaid;
+use App\Models\Client;
+use App\Models\Invoice;
 use Http;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class PaystackService
 {
@@ -41,9 +46,10 @@ class PaystackService
 
     public function chargeAuthorization($email, $authorizationCode, $amount)
     {
+        $intAmount = ceil($amount * 100);
         $data = [
             'email' => $email,
-            'amount' => $amount * 100,
+            'amount' => (int)$intAmount,
             'authorization_code' => $authorizationCode,
         ];
 
@@ -70,6 +76,17 @@ class PaystackService
         }
     }
 
+    public function verifyV2($ref)
+    {
+        try {
+            return Http::withHeaders(['Authorization' => 'Bearer ' . config('services.paystack.live_secret_key')])
+                ->get('https://api.paystack.co/transaction/verify/' . $ref);
+        } catch (\Exception $e) {
+            Log::info('failed to verify payment: ' . $e->getMessage());
+            return null;
+        }
+    }
+
     public function refundPayment(string $reference, float|int $param)
     {
         try {
@@ -84,6 +101,38 @@ class PaystackService
             return null;
         }
 
+    }
+
+    public function savePaymentAfterVerification($response, Invoice $invoice): bool
+    {
+        $amount = $response['data']['amount'] / 100;
+        $channel = $response['data']['channel'];
+
+        $payment = $invoice->payments()
+            ->firstOrCreate(
+                ['reference_number' => $response['data']['reference']], [
+                'amount' => $amount,
+                'notes' => '...',
+                'payment_method' => $channel,
+            ]);
+
+        if ($invoice->isPaid()) {
+            $invoice->update(['status' => InvoiceStatus::PAID]);
+        }
+
+        if ($invoice->isPartial()) {
+            $invoice->update(['status' => InvoiceStatus::PARTIAL]);
+        }
+
+        if ($invoice->client->hasEmail()) {
+            try {
+                Mail::to($invoice->client->email)->send(new InvoicePaid($invoice, $payment, $amount));
+            } catch (\Exception $e) {
+                Log::info('failed to send email: ' . $e->getMessage());
+            }
+        }
+
+        return true;
     }
 
 

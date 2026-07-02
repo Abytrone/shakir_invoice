@@ -12,7 +12,7 @@ class InvoiceController extends Controller
     public function print(Invoice $invoice)
     {
         $invoice->load('items.product');
-
+        $asQuotation = request()->boolean('asQuotation');
         $containsProducts = $invoice->items->contains(function ($item) {
             return $item->product && $item->product->type === 'product';
         });
@@ -22,13 +22,15 @@ class InvoiceController extends Controller
             'client' => $invoice->client,
             'items' => $invoice->items,
             'containsProducts' => $containsProducts,
+            'docType' => $asQuotation ? 'QUOTATION' : 'INVOICE'
         ]);
-
-        return $pdf->stream("Invoice-{$invoice->invoice_number}.pdf");
+        $name = $asQuotation ? 'quotation' : 'invoice';
+        return $pdf->stream("$name-$invoice->invoice_number.pdf");
     }
 
     public function download(Invoice $invoice)
     {
+        $asQuotation = request()->boolean('asQuotation');
         $containsProducts = $invoice->items->contains(function ($item) {
             return $item->type === 'product';
         });
@@ -37,10 +39,12 @@ class InvoiceController extends Controller
             'client' => $invoice->client,
             'items' => $invoice->items,
             'containsProducts' => $containsProducts,
-
+            'docType' => $asQuotation ? 'QUOTATION' : 'INVOICE'
         ]);
 
-        return $pdf->download("invoice-{$invoice->invoice_number}.pdf");
+        $name = $asQuotation ? 'quotation' : 'invoice';
+
+        return $pdf->download("$name-$invoice->invoice_number.pdf");
     }
 
     public function send(Invoice $invoice)
