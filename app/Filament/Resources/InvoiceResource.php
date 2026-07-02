@@ -532,16 +532,32 @@ class InvoiceResource extends Resource
                         ->requiresConfirmation(),
 
                     Tables\Actions\Action::make('replicate')
-                        ->label('Replicate Next Month')
+                        ->label('Replicate')
                         ->icon('heroicon-o-document-duplicate')
                         ->color('warning')
-                        ->action(function (Invoice $record) {
+                        ->form([
+                            \Filament\Forms\Components\DatePicker::make('issue_date')
+                                ->label('New Issue Date')
+                                ->default(now()->addMonth()->startOfMonth())
+                                ->required(),
+                            \Filament\Forms\Components\DatePicker::make('due_date')
+                                ->label('New Due Date')
+                                ->default(now()->addMonth()->startOfMonth()->addDays(30))
+                                ->required(),
+                            \Filament\Forms\Components\Toggle::make('is_recurring')
+                                ->label('Make new invoice recurring?')
+                                ->default(true),
+                            \Filament\Forms\Components\Toggle::make('disable_old_recurring')
+                                ->label('Turn off recurring on current invoice?')
+                                ->default(true),
+                        ])
+                        ->action(function (Invoice $record, array $data) {
                             $newInvoice = $record->replicate();
                             $newInvoice->invoice_number = null; // Trigger observer to generate new number
                             $newInvoice->status = 'draft';
-                            $newInvoice->issue_date = $record->issue_date ? $record->issue_date->addMonth() : now();
-                            $newInvoice->due_date = $record->due_date ? $record->due_date->addMonth() : now()->addDays(30);
-                            $newInvoice->is_recurring = false; // Manual replication, so disable auto-recurring on the copy
+                            $newInvoice->issue_date = $data['issue_date'];
+                            $newInvoice->due_date = $data['due_date'];
+                            $newInvoice->is_recurring = $data['is_recurring'];
                             $newInvoice->save();
 
                             foreach ($record->items as $item) {
@@ -549,16 +565,19 @@ class InvoiceResource extends Resource
                                 $newItem->invoice_id = $newInvoice->id;
                                 $newItem->save();
                             }
+                            
+                            if ($data['disable_old_recurring']) {
+                                $record->update(['is_recurring' => false]);
+                            }
 
                             \Filament\Notifications\Notification::make()
                                 ->title('Invoice Replicated')
-                                ->body('New invoice created for next month: ' . $newInvoice->invoice_number)
+                                ->body('New invoice created: ' . $newInvoice->invoice_number)
                                 ->success()
                                 ->send();
                         })
-                        ->requiresConfirmation()
-                        ->modalHeading('Replicate Invoice for Next Month')
-                        ->modalDescription('This will create a draft invoice for the next month with the same items. Are you sure?'),
+                        ->modalHeading('Replicate Invoice')
+                        ->modalDescription('Set the dates and recurring options for the new invoice.'),
 
                     Tables\Actions\EditAction::make()->color('primary'),
                     Tables\Actions\DeleteAction::make(),
@@ -566,19 +585,35 @@ class InvoiceResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\BulkAction::make('replicate_bulk')
-                        ->label('Generate Next Month Bills')
-                        ->icon('heroicon-o-document-duplicate')
+                    Tables\Actions\BulkAction::make('generate_and_download_zip')
+                        ->label('Generate Bills & Download ZIP')
+                        ->icon('heroicon-o-arrow-down-tray')
                         ->color('warning')
-                        ->action(function (\Illuminate\Database\Eloquent\Collection $records) {
-                            $count = 0;
+                        ->form([
+                            \Filament\Forms\Components\DatePicker::make('issue_date')
+                                ->label('New Issue Date')
+                                ->default(now()->addMonth()->startOfMonth())
+                                ->required(),
+                            \Filament\Forms\Components\DatePicker::make('due_date')
+                                ->label('New Due Date')
+                                ->default(now()->addMonth()->startOfMonth()->addDays(30))
+                                ->required(),
+                            \Filament\Forms\Components\Toggle::make('is_recurring')
+                                ->label('Make new invoices recurring?')
+                                ->default(true),
+                            \Filament\Forms\Components\Toggle::make('disable_old_recurring')
+                                ->label('Turn off recurring on selected invoices?')
+                                ->default(true),
+                        ])
+                        ->action(function (\Illuminate\Database\Eloquent\Collection $records, array $data) {
+                            $newInvoices = [];
                             foreach ($records as $record) {
                                 $newInvoice = $record->replicate();
                                 $newInvoice->invoice_number = null;
                                 $newInvoice->status = 'draft';
-                                $newInvoice->issue_date = $record->issue_date ? $record->issue_date->addMonth() : now();
-                                $newInvoice->due_date = $record->due_date ? $record->due_date->addMonth() : now()->addDays(30);
-                                $newInvoice->is_recurring = false;
+                                $newInvoice->issue_date = $data['issue_date'];
+                                $newInvoice->due_date = $data['due_date'];
+                                $newInvoice->is_recurring = $data['is_recurring'];
                                 $newInvoice->save();
 
                                 foreach ($record->items as $item) {
@@ -586,19 +621,51 @@ class InvoiceResource extends Resource
                                     $newItem->invoice_id = $newInvoice->id;
                                     $newItem->save();
                                 }
-                                $count++;
+
+                                if ($data['disable_old_recurring']) {
+                                    $record->update(['is_recurring' => false]);
+                                }
+
+                                $newInvoice->load('client', 'items.product');
+                                $newInvoices[] = $newInvoice;
+                            }
+
+                            // Generate ZIP
+                            $zipFileName = 'invoices_' . now()->format('Y_m_d_His') . '.zip';
+                            $zipPath = storage_path('app/public/' . $zipFileName);
+                            
+                            $zip = new \ZipArchive();
+                            if ($zip->open($zipPath, \ZipArchive::CREATE) === TRUE) {
+                                foreach ($newInvoices as $invoice) {
+                                    $containsProducts = $invoice->items->contains(function ($item) {
+                                        return $item->product && $item->product->type === 'product';
+                                    });
+                                    
+                                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('invoices.print', [
+                                        'invoice' => $invoice,
+                                        'client' => $invoice->client,
+                                        'items' => $invoice->items,
+                                        'containsProducts' => $containsProducts,
+                                        'docType' => 'INVOICE'
+                                    ]);
+                                    
+                                    $safeClientName = preg_replace('/[^A-Za-z0-9 _.-]/', '', $invoice->client->name);
+                                    $zip->addFromString($safeClientName . '-' . $invoice->invoice_number . '.pdf', $pdf->output());
+                                }
+                                $zip->close();
                             }
 
                             \Filament\Notifications\Notification::make()
-                                ->title('Bulk Replication Complete')
-                                ->body("$count invoices have been generated for the upcoming month.")
+                                ->title('Invoices Generated')
+                                ->body(count($newInvoices) . ' invoices have been generated and downloaded.')
                                 ->success()
                                 ->send();
+
+                            return response()->download($zipPath)->deleteFileAfterSend(true);
                         })
-                        ->requiresConfirmation()
-                        ->modalHeading('Generate Next Month Bills for Selected')
-                        ->modalDescription('This will create new draft invoices for all selected records, set to next month dates. Proceed?')
-                        ->deselectRecordsAfterCompletion(),
+                        ->deselectRecordsAfterCompletion()
+                        ->modalHeading('Generate Next Month Bills & Download ZIP')
+                        ->modalDescription('This will create new invoices for the selected records and download them all inside a ZIP file.'),
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);

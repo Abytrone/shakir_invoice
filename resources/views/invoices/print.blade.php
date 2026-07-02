@@ -396,8 +396,8 @@
                 </p>
 
                 @if($invoice->is_recurring)
-                    <p class="text-sm mb-4"><span class="meta-title">NEXT INVOICE:
-                        </span>{{ $invoice->next_recurring_date }}</p>
+                    <p class="text-sm mb-4"><span class="meta-title">NEXT {{$docType}}:
+                        </span>{{ \Carbon\Carbon::parse($invoice->next_recurring_date)->format('d-m-Y') }}</p>
                 @endif
             </div>
         </div>
