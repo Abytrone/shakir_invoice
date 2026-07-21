@@ -47,7 +47,7 @@ class RecurringInvoiceReminder extends Command
             $invoice->update(['due_reminder_date' => now()]);
             $users = ['shakirdynamicsltd@gmail.com'];
             if ($invoice->client->hasEmail()) {
-                $users[] = $invoice->client->getEmail();
+                $users[] = $invoice->client->email;
             }
             Mail::to($users)
                 ->send(new InvoiceReminderSent($invoice, $daysBeforeDueDate));
