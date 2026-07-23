@@ -18,7 +18,6 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 
@@ -145,7 +144,10 @@ class InvoiceResource extends Resource
                                                     }
                                                 }
 
-                                                static::updateInnerTotals($get, $set);
+                                                static::updateTotal($get, $set, prefix: '../../');
+                                                static::syncDiscount($get, $set, prefix: '../../');
+                                                static::syncTax($get, $set, prefix: '../../');
+                                                static::updateTotal($get, $set, prefix: '../../');
                                             })
                                             ->columnSpan(1),
 
@@ -172,15 +174,20 @@ class InvoiceResource extends Resource
                             ->defaultItems(1)
                             ->reorderable(false)
                             ->columnSpanFull()
-                            ->live(),
-                    ])
-                    ->live()
-                    ->afterStateUpdated(function (Get $get, Set $set) {
-                        static::updateOuterTotals($get, $set);
-                    })
-                    ->afterStateHydrated(function (Get $get, Set $set) {
-                        static::updateOuterTotals($get, $set);
-                    }),
+                            ->live()
+                            ->afterStateUpdated(function (Get $get, Set $set) {
+                                static::updateTotal($get, $set);
+                                static::syncDiscount($get, $set);
+                                static::syncTax($get, $set);
+                                static::updateTotal($get, $set);
+                            })
+                            ->afterStateHydrated(function (Get $get, Set $set) {
+                                static::updateTotal($get, $set);
+                                static::syncDiscount($get, $set);
+                                static::syncTax($get, $set);
+                                static::updateTotal($get, $set);
+                            }),
+                    ]),
 
                 Forms\Components\Section::make('Invoice Summary')
                     ->icon('heroicon-o-currency-dollar')
@@ -201,7 +208,8 @@ class InvoiceResource extends Resource
                                                     ->live(onBlur: true)
                                                     ->afterStateUpdated(function (Get $get, Set $set) {
                                                         $set('tax_type', 'percent');
-                                                        self::updateOuterTotals($get, $set, skipField: 'tax_rate');
+                                                        self::syncTax($get, $set, changedField: 'tax_rate');
+                                                        self::updateTotal($get, $set);
                                                     }),
                                                 Forms\Components\TextInput::make('tax_amount')
                                                     ->label('Tax Amount')
@@ -211,7 +219,8 @@ class InvoiceResource extends Resource
                                                     ->live(onBlur: true)
                                                     ->afterStateUpdated(function (Get $get, Set $set) {
                                                         $set('tax_type', 'fixed');
-                                                        self::updateOuterTotals($get, $set, skipField: 'tax_amount');
+                                                        self::syncTax($get, $set, changedField: 'tax_amount');
+                                                        self::updateTotal($get, $set);
                                                     }),
                                             ]),
                                     ])->columnSpan(1),
@@ -230,7 +239,8 @@ class InvoiceResource extends Resource
                                                     ->live(onBlur: true)
                                                     ->afterStateUpdated(function (Get $get, Set $set) {
                                                         $set('discount_type', 'percent');
-                                                        self::updateOuterTotals($get, $set, skipField: 'discount_rate');
+                                                        self::syncDiscount($get, $set, changedField: 'discount_rate');
+                                                        self::updateTotal($get, $set);
                                                     }),
                                                 Forms\Components\TextInput::make('discount_amount')
                                                     ->label('Discount Amount')
@@ -240,7 +250,8 @@ class InvoiceResource extends Resource
                                                     ->live(onBlur: true)
                                                     ->afterStateUpdated(function (Get $get, Set $set) {
                                                         $set('discount_type', 'fixed');
-                                                        self::updateOuterTotals($get, $set, skipField: 'discount_amount');
+                                                        self::syncDiscount($get, $set, changedField: 'discount_amount');
+                                                        self::updateTotal($get, $set);
                                                     }),
                                             ]),
                                     ])->columnSpan(1),
@@ -312,156 +323,80 @@ class InvoiceResource extends Resource
     }
 
 
-    protected static function updateInnerTotals(Get $get, Set $set): void
+    /**
+     * Keeps discount_rate <-> discount_amount consistent against the current subtotal.
+     *
+     * @param  string  $prefix  State path prefix ('' for the outer form, '../../' from inside a repeater row).
+     * @param  ?string  $changedField  Bare field name the user just edited ('discount_rate' or 'discount_amount'),
+     *                                 left untouched so it isn't reformatted out from under the user on blur.
+     */
+    protected static function syncDiscount(Get $get, Set $set, string $prefix = '', ?string $changedField = null): void
     {
-        static::updateTotalsV2(
-            $set,
-            $get('../../items'),
-            $get('../../tax_type'),
-            $get('../../discount_type'),
-            $get('../../tax_rate'),
-            $get('../../tax_amount'),
-            $get('../../discount_rate'),
-            $get('../../discount_amount'),
-            function ($set, $subtotal, $grandTotal, $discountAmount, $discountRate, $taxAmount, $taxRate) {
-                $set('../../discount_amount', self::twoDpNumberFormat($discountAmount));
-                $set('../../discount_rate', self::twoDpNumberFormat($discountRate));
-                $set('../../tax_amount', self::twoDpNumberFormat($taxAmount));
-                $set('../../tax_rate', self::twoDpNumberFormat($taxRate));
-                $set('../../subtotal', self::twoDpNumberFormat($subtotal));
-                $set('../../total', self::twoDpNumberFormat($grandTotal));
-            }
-        );
-    }
+        $subtotal = (float)$get("{$prefix}subtotal");
+        $discountType = $get("{$prefix}discount_type");
+        $discountRate = (float)$get("{$prefix}discount_rate");
+        $discountAmount = (float)$get("{$prefix}discount_amount");
 
-    protected static function updateOuterTotals(Get $get, Set $set, ?string $skipField = null): void
-    {
-        static::updateTotalsV2(
-            $set,
-            $get('items'),
-            $get('tax_type'),
-            $get('discount_type'),
-            $get('tax_rate'),
-            $get('tax_amount'),
-            $get('discount_rate'),
-            $get('discount_amount'),
-            skipField: $skipField
-        );
-    }
-
-
-    protected static function updateTotalsV2(
-        Set       $set,
-        array     $items,
-        ?string   $taxType,
-        ?string   $discountType,
-        ?string   $taxRate,
-        ?string   $taxAmount,
-        ?string   $discountRate,
-        ?string   $discountAmount,
-        ?\Closure $callableSet = null,
-        ?string   $skipField = null
-    ): void
-    {
-        $taxRate = (float)$taxRate;
-        $taxAmount = (float)$taxAmount;
-        $discountRate = (float)$discountRate;
-        $discountAmount = (float)$discountAmount;
-        $subtotal = 0;
-
-        $selectedProducts = collect($items)
-            ->filter(fn($item) => !empty($item['product_id'])
-                && !empty($item['quantity']));
-
-        foreach ($selectedProducts as $item) {
-            $subtotal += (float)$item['unit_price'] * (int)$item['quantity'];
-        }
-
-        // Tax Calculation
-        if ($taxType === 'fixed') {
-            $taxRate = $subtotal > 0 ? ($taxAmount / $subtotal) * 100 : 0;
-        } else {
-            $taxAmount = $subtotal * ($taxRate / 100);
-        }
-
-        // Discount Calculation
         if ($discountType === 'fixed') {
             $discountRate = $subtotal > 0 ? ($discountAmount / $subtotal) * 100 : 0;
         } else {
             $discountAmount = $subtotal * ($discountRate / 100);
         }
 
-        $grandTotal = $subtotal + $taxAmount - $discountAmount;
-        if ($callableSet != null) {
-            $callableSet($set,
-                $subtotal,
-                $grandTotal,
-                $discountAmount,
-                $discountRate,
-                $taxAmount,
-                $taxRate);
-        } else {
-            if ($skipField !== 'discount_amount') {
-                $set('discount_amount', self::twoDpNumberFormat($discountAmount));
-            }
-            if ($skipField !== 'discount_rate') {
-                $set('discount_rate', self::twoDpNumberFormat($discountRate));
-            }
-            if ($skipField !== 'tax_amount') {
-                $set('tax_amount', self::twoDpNumberFormat($taxAmount));
-            }
-            if ($skipField !== 'tax_rate') {
-                $set('tax_rate', self::twoDpNumberFormat($taxRate));
-            }
-            $set('subtotal', round($subtotal, 2));
-            $set('total', round($grandTotal, 2));
+        if ($changedField !== 'discount_rate') {
+            $set("{$prefix}discount_rate", self::twoDpNumberFormat($discountRate));
         }
-
+        if ($changedField !== 'discount_amount') {
+            $set("{$prefix}discount_amount", self::twoDpNumberFormat($discountAmount));
+        }
     }
 
-    protected static function updateTotals(Get $get, Set $set): void
+    /**
+     * Keeps tax_rate <-> tax_amount consistent against the current subtotal.
+     *
+     * @param  string  $prefix  State path prefix ('' for the outer form, '../../' from inside a repeater row).
+     * @param  ?string  $changedField  Bare field name the user just edited ('tax_rate' or 'tax_amount'),
+     *                                 left untouched so it isn't reformatted out from under the user on blur.
+     */
+    protected static function syncTax(Get $get, Set $set, string $prefix = '', ?string $changedField = null): void
     {
-        $selectedProducts = collect($get('items'))
-            ->filter(fn($item) => !empty($item['product_id'])
-                && !empty($item['quantity']));
-        $subtotal = 0;
+        $subtotal = (float)$get("{$prefix}subtotal");
+        $taxType = $get("{$prefix}tax_type");
+        $taxRate = (float)$get("{$prefix}tax_rate");
+        $taxAmount = (float)$get("{$prefix}tax_amount");
 
-        Log::debug('selected products', [$selectedProducts]);
-        foreach ($selectedProducts as $item) {
-            $subtotal += (float)$item['unit_price'] * (int)$item['quantity'];
-        }
-
-        $taxType = $get('tax_type') ?? 'percent';
-        $discountType = $get('discount_type') ?? 'percent';
-
-        // Tax Calculation
         if ($taxType === 'fixed') {
-            $taxAmount = (float)$get('tax_amount');
-            // In Fixed mode, we trust the amount explicitly.
-            // We set the rate just for UI consistency if they switch back, but the DB truth is the amount.
-            $rate = $subtotal > 0 ? ($taxAmount / $subtotal) * 100 : 0;
-            $set('tax_rate', number_format($rate, 2, '.', ''));
+            $taxRate = $subtotal > 0 ? ($taxAmount / $subtotal) * 100 : 0;
         } else {
-            $tax_rate = (float)$get('tax_rate');
-            $taxAmount = $subtotal * ($tax_rate / 100);
-            $set('tax_amount', number_format($taxAmount, 2, '.', ''));
+            $taxAmount = $subtotal * ($taxRate / 100);
         }
 
-        // Discount Calculation
-        if ($discountType === 'fixed') {
-            $discountAmount = (float)$get('discount_amount');
-            $rate = $subtotal > 0 ? ($discountAmount / $subtotal) * 100 : 0;
-            $set('discount_rate', number_format($rate, 2, '.', ''));
-        } else {
-            $discount_rate = (float)$get('discount_rate');
-            $discountAmount = $subtotal * ($discount_rate / 100);
-            $set('discount_amount', number_format($discountAmount, 2, '.', ''));
+        if ($changedField !== 'tax_rate') {
+            $set("{$prefix}tax_rate", self::twoDpNumberFormat($taxRate));
         }
+        if ($changedField !== 'tax_amount') {
+            $set("{$prefix}tax_amount", self::twoDpNumberFormat($taxAmount));
+        }
+    }
 
-        $grandTotal = $subtotal + $taxAmount - $discountAmount;
+    /**
+     * Sums the line items into subtotal, then derives the grand total from the current
+     * tax/discount amounts. Doesn't touch rate <-> amount conversion — see syncDiscount()/syncTax().
+     *
+     * @param  string  $prefix  State path prefix ('' for the outer form, '../../' from inside a repeater row).
+     */
+    protected static function updateTotal(Get $get, Set $set, string $prefix = ''): void
+    {
+        $subtotal = collect($get("{$prefix}items"))
+            ->filter(fn($item) => !empty($item['product_id']) && !empty($item['quantity']))
+            ->sum(fn($item) => (float)$item['unit_price'] * (int)$item['quantity']);
 
-        $set('subtotal', round($subtotal, 2));
-        $set('total', round($grandTotal, 2));
+        $set("{$prefix}subtotal", self::twoDpNumberFormat($subtotal));
+
+        $taxAmount = (float)$get("{$prefix}tax_amount");
+        $discountAmount = (float)$get("{$prefix}discount_amount");
+
+        $set("{$prefix}total", self::twoDpNumberFormat($subtotal + $taxAmount - $discountAmount));
     }
 
     public static function table(Table $table): Table
