@@ -706,6 +706,6 @@ class InvoiceResource extends Resource
      */
     public static function twoDpNumberFormat(?float $number): float
     {
-        return (float)number_format($number ?? 0, 2);
+        return round($number ?? 0, 2);
     }
 }
