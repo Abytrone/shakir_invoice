@@ -155,7 +155,7 @@ class InvoiceResource extends Resource
                                             ->required()
                                             ->minValue(1)
                                             ->helperText('Number of units')
-                                            ->live()
+                                            ->live(onBlur: true)
                                             ->columnSpan(1),
 
                                         Forms\Components\TextInput::make('unit_price')
@@ -165,7 +165,7 @@ class InvoiceResource extends Resource
                                             ->prefix('GHS')
                                             ->label('Unit Price')
                                             ->helperText('Price per unit')
-                                            ->live()
+                                            ->live(onBlur: true)
                                             ->columnSpan(1)
                                     ]),
                             ])
@@ -177,7 +177,8 @@ class InvoiceResource extends Resource
                     ->live()
                     ->afterStateUpdated(function (Get $get, Set $set) {
                         static::updateOuterTotals($get, $set);
-                    })->afterStateHydrated(function (Get $get, Set $set) {
+                    })
+                    ->afterStateHydrated(function (Get $get, Set $set) {
                         static::updateOuterTotals($get, $set);
                     }),
 
@@ -197,20 +198,20 @@ class InvoiceResource extends Resource
                                                     ->numeric()
                                                     ->default(0)
                                                     ->suffix('%')
-                                                    ->live()
+                                                    ->live(onBlur: true)
                                                     ->afterStateUpdated(function (Get $get, Set $set) {
                                                         $set('tax_type', 'percent');
-                                                        self::updateOuterTotals($get, $set);
+                                                        self::updateOuterTotals($get, $set, skipField: 'tax_rate');
                                                     }),
                                                 Forms\Components\TextInput::make('tax_amount')
                                                     ->label('Tax Amount')
                                                     ->numeric()
                                                     ->default(0)
                                                     ->prefix('GHS')
-                                                    ->live()
+                                                    ->live(onBlur: true)
                                                     ->afterStateUpdated(function (Get $get, Set $set) {
                                                         $set('tax_type', 'fixed');
-                                                        self::updateOuterTotals($get, $set);
+                                                        self::updateOuterTotals($get, $set, skipField: 'tax_amount');
                                                     }),
                                             ]),
                                     ])->columnSpan(1),
@@ -226,20 +227,20 @@ class InvoiceResource extends Resource
                                                     ->numeric()
                                                     ->default(0)
                                                     ->suffix('%')
-                                                    ->live()
+                                                    ->live(onBlur: true)
                                                     ->afterStateUpdated(function (Get $get, Set $set) {
                                                         $set('discount_type', 'percent');
-                                                        self::updateOuterTotals($get, $set);
+                                                        self::updateOuterTotals($get, $set, skipField: 'discount_rate');
                                                     }),
                                                 Forms\Components\TextInput::make('discount_amount')
                                                     ->label('Discount Amount')
                                                     ->numeric()
                                                     ->default(0)
                                                     ->prefix('GHS')
-                                                    ->live()
+                                                    ->live(onBlur: true)
                                                     ->afterStateUpdated(function (Get $get, Set $set) {
                                                         $set('discount_type', 'fixed');
-                                                        self::updateOuterTotals($get, $set);
+                                                        self::updateOuterTotals($get, $set, skipField: 'discount_amount');
                                                     }),
                                             ]),
                                     ])->columnSpan(1),
@@ -333,7 +334,7 @@ class InvoiceResource extends Resource
         );
     }
 
-    protected static function updateOuterTotals(Get $get, Set $set): void
+    protected static function updateOuterTotals(Get $get, Set $set, ?string $skipField = null): void
     {
         static::updateTotalsV2(
             $set,
@@ -343,7 +344,8 @@ class InvoiceResource extends Resource
             $get('tax_rate'),
             $get('tax_amount'),
             $get('discount_rate'),
-            $get('discount_amount')
+            $get('discount_amount'),
+            skipField: $skipField
         );
     }
 
@@ -357,7 +359,8 @@ class InvoiceResource extends Resource
         ?string   $taxAmount,
         ?string   $discountRate,
         ?string   $discountAmount,
-        ?\Closure $callableSet = null
+        ?\Closure $callableSet = null,
+        ?string   $skipField = null
     ): void
     {
         $taxRate = (float)$taxRate;
@@ -398,10 +401,18 @@ class InvoiceResource extends Resource
                 $taxAmount,
                 $taxRate);
         } else {
-            $set('discount_amount', self::twoDpNumberFormat($discountAmount));
-            $set('discount_rate', self::twoDpNumberFormat($discountRate));
-            $set('tax_amount', self::twoDpNumberFormat($taxAmount));
-            $set('tax_rate', self::twoDpNumberFormat($taxRate));
+            if ($skipField !== 'discount_amount') {
+                $set('discount_amount', self::twoDpNumberFormat($discountAmount));
+            }
+            if ($skipField !== 'discount_rate') {
+                $set('discount_rate', self::twoDpNumberFormat($discountRate));
+            }
+            if ($skipField !== 'tax_amount') {
+                $set('tax_amount', self::twoDpNumberFormat($taxAmount));
+            }
+            if ($skipField !== 'tax_rate') {
+                $set('tax_rate', self::twoDpNumberFormat($taxRate));
+            }
             $set('subtotal', round($subtotal, 2));
             $set('total', round($grandTotal, 2));
         }
@@ -631,7 +642,7 @@ class InvoiceResource extends Resource
                                 $newItem->invoice_id = $newInvoice->id;
                                 $newItem->save();
                             }
-                            
+
                             if ($data['disable_old_recurring']) {
                                 $record->update(['is_recurring' => false]);
                             }
@@ -700,14 +711,14 @@ class InvoiceResource extends Resource
                             // Generate ZIP
                             $zipFileName = 'invoices_' . now()->format('Y_m_d_His') . '.zip';
                             $zipPath = storage_path('app/public/' . $zipFileName);
-                            
+
                             $zip = new \ZipArchive();
                             if ($zip->open($zipPath, \ZipArchive::CREATE) === TRUE) {
                                 foreach ($newInvoices as $invoice) {
                                     $containsProducts = $invoice->items->contains(function ($item) {
                                         return $item->product && $item->product->type === 'product';
                                     });
-                                    
+
                                     $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('invoices.print', [
                                         'invoice' => $invoice,
                                         'client' => $invoice->client,
@@ -715,7 +726,7 @@ class InvoiceResource extends Resource
                                         'containsProducts' => $containsProducts,
                                         'docType' => 'INVOICE'
                                     ]);
-                                    
+
                                     $safeClientName = preg_replace('/[^A-Za-z0-9 _.-]/', '', $invoice->client->name);
                                     $zip->addFromString($safeClientName . '-' . $invoice->invoice_number . '.pdf', $pdf->output());
                                 }
