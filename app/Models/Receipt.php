@@ -31,6 +31,11 @@ class Receipt extends Model
         return $this->belongsTo(Client::class);
     }
 
+    public function invoice(): BelongsTo
+    {
+        return $this->belongsTo(Invoice::class);
+    }
+
     protected function clientName(): Attribute
     {
         return Attribute::make(

@@ -186,6 +186,11 @@ class Invoice extends Model
         return $this->hasMany(Payment::class);
     }
 
+    public function receipts(): HasMany
+    {
+        return $this->hasMany(Receipt::class);
+    }
+
 
     protected function amountPaid(): Attribute
     {

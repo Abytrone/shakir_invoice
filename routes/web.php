@@ -37,6 +37,9 @@ Route::middleware('signed')->group(function () {
     Route::get('/invoices/{invoice:invoice_uuid}/download', [InvoiceController::class, 'download'])
         ->name('invoices.download');
 
+    Route::get('/invoices/{invoice:invoice_uuid}/generate-receipt', [InvoiceController::class, 'generateReceipt'])
+        ->name('invoices.generate_receipt');
+
 
 
     Route::get('/payments/{invoice:invoice_uuid}', [PaymentController::class, 'initialize'])

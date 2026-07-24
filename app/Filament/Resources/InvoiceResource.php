@@ -524,6 +524,15 @@ class InvoiceResource extends Resource
                             'asQuotation' => true]))
                         ->openUrlInNewTab(),
 
+                    Tables\Actions\Action::make('generate_receipt')
+                        ->label('Generate Receipt')
+                        ->icon('heroicon-o-receipt-percent')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->modalDescription('This will create a receipt from this invoice\'s items and customer, then download it.')
+                        ->url(fn(Invoice $record): string => URL::signedRoute('invoices.generate_receipt', $record))
+                        ->openUrlInNewTab(),
+
                     Tables\Actions\Action::make('send')
                         ->label(fn(Invoice $record) => $record->status == 'draft' ? 'Send' : 'Resend')
                         ->icon('heroicon-o-paper-airplane')
